@@ -24,13 +24,13 @@ ifeq ($(filter $(ARCH),aarch64 loongarch64 riscv64 x86_64),)
 endif
 
 # User controllable C compiler command.
-$(call USER_VARIABLE,CC,cc)
+$(call USER_VARIABLE,CC,x86_64-elf-gcc)
 
 # User controllable archiver command.
-$(call USER_VARIABLE,AR,ar)
+$(call USER_VARIABLE,AR,x86_64-elf-ar)
 
 # User controllable linker command.
-$(call USER_VARIABLE,LD,ld)
+$(call USER_VARIABLE,LD,x86_64-elf-ld)
 
 # User controllable C flags.
 $(call USER_VARIABLE,CFLAGS,-g -O2 -pipe)

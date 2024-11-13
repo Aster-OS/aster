@@ -25,6 +25,9 @@ run: run-$(ARCH)
 .PHONY: run-hdd
 run-hdd: run-hdd-$(ARCH)
 
+.PHONY: run-kvm
+run-kvm: run-kvm-$(ARCH)
+
 .PHONY: run-x86_64
 run-x86_64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
 	qemu-system-$(ARCH) \
@@ -39,6 +42,15 @@ run-hdd-x86_64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).hdd
 		-M q35 \
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
 		-hda $(IMAGE_NAME).hdd \
+		$(QEMUFLAGS)
+
+.PHONY: run-kvm-x86_64
+run-kvm-x86_64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
+	qemu-system-$(ARCH) \
+		-M q35 \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
+		-cdrom $(IMAGE_NAME).iso \
+		--enable-kvm \
 		$(QEMUFLAGS)
 
 .PHONY: run-aarch64
