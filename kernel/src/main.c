@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "kprintf/kprintf.h"
 #include "limine.h"
 
 __attribute__((used, section(".limine_requests")))
@@ -31,12 +32,8 @@ void kmain(void) {
         halt();
     }
 
-    struct limine_framebuffer *fb = fb_request.response->framebuffers[0];
-
-    for (size_t i = 0; i < 100; i++) {
-        volatile uint32_t *fb_ptr = fb->address;
-        fb_ptr[i * (fb->pitch / 4) + i] = 0x00ffff;
-    }
+    kprintf_init(fb_request.response->framebuffers[0]);
+    kprintf("Hello, %s!\n", "World");
 
     halt();
 }

@@ -33,7 +33,7 @@ $(call USER_VARIABLE,AR,x86_64-elf-ar)
 $(call USER_VARIABLE,LD,x86_64-elf-ld)
 
 # User controllable C flags.
-$(call USER_VARIABLE,CFLAGS,-g -O2 -pipe)
+$(call USER_VARIABLE,CFLAGS,-g -O2 -pipe -DPRINTF_INCLUDE_CONFIG_H)
 
 # User controllable C preprocessor flags. We set none by default.
 $(call USER_VARIABLE,CPPFLAGS,)

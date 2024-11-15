@@ -1,0 +1,6 @@
+[submodule "kernel/src/lib/flanterm"]
+	path = kernel/src/lib/flanterm
+	url = https://github.com/Aster-OS/flanterm.git
+[submodule "kernel/src/lib/printf"]
+	path = kernel/src/lib/printf
+	url = https://github.com/Aster-OS/printf.git
