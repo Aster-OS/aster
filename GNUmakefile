@@ -11,6 +11,9 @@ $(call USER_VARIABLE,ARCH,x86_64)
 # Default user QEMU flags. These are appended to the QEMU command calls.
 $(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
+# GDB path
+$(call USER_VARIABLE,GDB,x86_64-elf-gdb)
+
 override IMAGE_NAME := aster-$(ARCH)
 
 .PHONY: all
@@ -22,11 +25,27 @@ all-hdd: $(IMAGE_NAME).hdd
 .PHONY: run
 run: run-$(ARCH)
 
+.PHONY: run-kvm
+run-kvm: QEMUFLAGS += -enable-kvm
+run-kvm: run-$(ARCH)
+
+.PHONY: run-debug
+run-debug: QEMUFLAGS += -D ./qemu.log -d int -M smm=off -no-reboot -no-shutdown
+run-debug: run-$(ARCH)
+
+.PHONY: run-debug-gdb
+run-debug-gdb: QEMUFLAGS += -s -S
+run-debug-gdb: run-$(ARCH)
+
 .PHONY: run-hdd
 run-hdd: run-hdd-$(ARCH)
 
-.PHONY: run-kvm
-run-kvm: run-kvm-$(ARCH)
+.PHONY: open-gdb-term
+open-gdb-term: kernel # require kernel target to read symbols from elf
+	gnome-terminal -- $(GDB) kernel/bin-$(ARCH)/kernel \
+		--eval-command="set tcp connect-timeout unlimited" \
+		--eval-command="set tcp auto-retry on" \
+		--eval-command="target remote localhost:1234"
 
 .PHONY: run-x86_64
 run-x86_64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
@@ -42,15 +61,6 @@ run-hdd-x86_64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).hdd
 		-M q35 \
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
 		-hda $(IMAGE_NAME).hdd \
-		$(QEMUFLAGS)
-
-.PHONY: run-kvm-x86_64
-run-kvm-x86_64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
-	qemu-system-$(ARCH) \
-		-M q35 \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
-		-cdrom $(IMAGE_NAME).iso \
-		--enable-kvm \
 		$(QEMUFLAGS)
 
 .PHONY: run-aarch64
@@ -130,7 +140,6 @@ run-hdd-loongarch64: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).hdd
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(ARCH).fd,readonly=on \
 		-hda $(IMAGE_NAME).hdd \
 		$(QEMUFLAGS)
-
 
 .PHONY: run-bios
 run-bios: $(IMAGE_NAME).iso
