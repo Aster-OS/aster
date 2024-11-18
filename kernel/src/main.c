@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "arch/x86_64/gdt/gdt.h"
 #include "kprintf/kprintf.h"
 #include "limine.h"
 
@@ -35,5 +36,7 @@ void kmain(void) {
     kprintf_init(fb_request.response->framebuffers[0]);
     kprintf("Hello, %s!\n", "World");
 
+    gdt_init();
+    
     halt();
 }
