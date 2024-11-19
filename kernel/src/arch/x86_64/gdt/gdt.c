@@ -46,7 +46,8 @@ struct __attribute__((packed)) tss_t {
     uint16_t iopb_offset;
 };
 
-static struct seg_descriptor_t gdt[7]; // null, kcode, kdata, ucode, udata, tss (counts as 2 entries)
+ // null, kcode, kdata, ucode, udata, tss (counts as 2 entries)
+static __attribute__((aligned(8))) struct seg_descriptor_t gdt[7];
 static uint8_t last_used_gdt_index;
 
 static struct tss_t tss;
