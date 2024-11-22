@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "arch/x86_64/gdt/gdt.h"
+#include "arch/x86_64/idt/idt.h"
 #include "kprintf/kprintf.h"
 #include "limine.h"
 
@@ -37,6 +38,7 @@ void kmain(void) {
     kprintf("Hello, %s!\n", "World");
 
     gdt_init();
+    idt_init();
     
     halt();
 }
