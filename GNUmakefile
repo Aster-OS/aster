@@ -8,9 +8,6 @@ override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval 
 # Default user QEMU flags. These are appended to the QEMU command calls.
 $(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
-# GDB path
-$(call USER_VARIABLE,GDB,x86_64-elf-gdb)
-
 override IMAGE_NAME := aster
 
 .PHONY: all
@@ -19,78 +16,14 @@ all: $(IMAGE_NAME).iso
 .PHONY: all-hdd
 all-hdd: $(IMAGE_NAME).hdd
 
-.PHONY: run
-run: $(IMAGE_NAME).iso
-	qemu-system-x86_64 \
-		-M q35 \
-		-cdrom $(IMAGE_NAME).iso \
-		-boot d \
-		$(QEMUFLAGS)
+.PHONY: image-name
+image-name:
+	rm -rf image-name
+	mkdir image-name
+	touch image-name/$(IMAGE_NAME)
 
-.PHONY: run-uefi
-run-uefi: ovmf/ovmf-code-x86_64.fd $(IMAGE_NAME).iso
-	qemu-system-x86_64 \
-		-M q35 \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-x86_64.fd,readonly=on \
-		-cdrom $(IMAGE_NAME).iso \
-		-boot d \
-		$(QEMUFLAGS)
-
-.PHONY: run-hdd
-run-hdd: $(IMAGE_NAME).hdd
-	qemu-system-x86_64 \
-		-M q35 \
-		-hda $(IMAGE_NAME).hdd \
-		$(QEMUFLAGS)
-
-.PHONY: run-hdd-uefi
-run-hdd-uefi: ovmf/ovmf-code-x86_64.fd $(IMAGE_NAME).hdd
-	qemu-system-x86_64 \
-		-M q35 \
-		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-x86_64.fd,readonly=on \
-		-hda $(IMAGE_NAME).hdd \
-		$(QEMUFLAGS)
-
-ifneq (, $(filter $(MAKECMDGOALS),run-kvm run-kvm-uefi))
-    override QEMUFLAGS += \
-        -enable-kvm
-else ifneq (, $(filter $(MAKECMDGOALS),run-log run-log-uefi))
-    override QEMUFLAGS += \
-		-D ./qemu.log \
-		-d int \
-		-M smm=off \
-		-no-reboot \
-		-no-shutdown
-else ifneq (, $(filter $(MAKECMDGOALS),run-gdb run-gdb-uefi))
-    override QEMUFLAGS += \
-		-s \
-		-S
-endif
-
-.PHONY: run-kvm
-run-kvm: run
-
-.PHONY: run-log
-run-log: run
-
-.PHONY: run-gdb
-run-gdb: run
-
-.PHONY: run-kvm-uefi
-run-kvm-uefi: run-uefi
-
-.PHONY: run-log-uefi
-run-log-uefi: run-uefi
-
-.PHONY: run-gdb-uefi
-run-gdb-uefi: run-uefi
-
-.PHONY: open-gdb-term
-open-gdb-term: kernel # require kernel target to read symbols from elf
-	gnome-terminal -- $(GDB) kernel/bin/kernel \
-		--eval-command="set tcp connect-timeout unlimited" \
-		--eval-command="set tcp auto-retry on" \
-		--eval-command="target remote localhost:1234"
+.PHONY: ovmf
+ovmf: ovmf/ovmf-code-x86_64.fd
 
 ovmf/ovmf-code-x86_64.fd:
 	mkdir -p ovmf
@@ -141,9 +74,9 @@ $(IMAGE_NAME).hdd: limine/limine kernel
 .PHONY: clean
 clean:
 	$(MAKE) -C kernel clean
-	rm -rf iso_root $(IMAGE_NAME).iso $(IMAGE_NAME).hdd
+	rm -rf iso_root $(IMAGE_NAME).iso $(IMAGE_NAME).hdd *.log
 
 .PHONY: distclean
 distclean: clean
 	$(MAKE) -C kernel distclean
-	rm -rf kernel-deps limine ovmf
+	rm -rf kernel-deps limine ovmf *.log
