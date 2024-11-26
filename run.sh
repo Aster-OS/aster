@@ -1,6 +1,6 @@
 #! /bin/sh
 
-make image-name
+make image-name || exit 1;
 IMAGE_NAME=$(cd image-name && echo *)
 KERNEL="kernel/bin/kernel"
 
@@ -35,17 +35,17 @@ done
 
 if [ $BOOT = "uefi" ]; then
     QEMU_FLAGS="$QEMU_FLAGS -drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-x86_64.fd,readonly=on"
-    make ovmf
+    make ovmf || exit 1;
 fi
 
 if [ $IMAGE_TYPE = "iso" ]; then
     QEMU_FLAGS="$QEMU_FLAGS -cdrom $IMAGE_NAME.iso -boot d"
-    make all
+    make all || exit 1;
 fi
 
 if [ $IMAGE_TYPE = "hdd" ]; then
     QEMU_FLAGS="$QEMU_FLAGS -hda $IMAGE_NAME.hdd"
-    make all-hdd
+    make all-hdd || exit 1;
 fi
 
 if [ "$KVM" = true ]; then
