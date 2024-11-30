@@ -7,6 +7,7 @@
 #include "kprintf/kprintf.h"
 #include "limine.h"
 #include "memory/pmm/pmm.h"
+#include "memory/vmm/vmm.h"
 
 __attribute__((used, section(".limine_requests")))
 static volatile LIMINE_BASE_REVISION(3)
@@ -20,6 +21,12 @@ static volatile struct limine_framebuffer_request fb_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_kernel_address_request kaddr_request = {
+    .id = LIMINE_KERNEL_ADDRESS_REQUEST,
     .revision = 0
 };
 
@@ -40,6 +47,7 @@ static void halt(void) {
 }
 
 uint64_t hhdm_offset;
+struct limine_kernel_address_response *kaddr;
 struct limine_memmap_response *memmap;
 
 void kmain(void) {
@@ -52,6 +60,7 @@ void kmain(void) {
     }
 
     hhdm_offset = hhdm_request.response->offset;
+    kaddr = kaddr_request.response;
     memmap = memmap_request.response;
 
     kprintf_init(fb_request.response->framebuffers[0]);
@@ -60,6 +69,7 @@ void kmain(void) {
     gdt_init();
     idt_init();
     pmm_init();
-    
+    vmm_init();
+
     kpanic("End of kmain");
 }
