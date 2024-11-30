@@ -6,35 +6,29 @@ MAKEFLAGS += -rR
 # Change as needed.
 override OUTPUT := kernel
 
-# Convenience macro to reliably declare user overridable variables.
-override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval override $(1) := $(2)))
-
-# Destination directory on install (should always be empty by default).
-$(call USER_VARIABLE,DESTDIR,)
-
 # Install prefix; /usr/local is a good, standard default pick.
-$(call USER_VARIABLE,PREFIX,/usr/local)
+PREFIX := /usr/local
 
 # User controllable C compiler command.
-$(call USER_VARIABLE,CC,x86_64-elf-gcc)
+CC := x86_64-elf-gcc
 
 # User controllable archiver command.
-$(call USER_VARIABLE,AR,x86_64-elf-ar)
+AR := x86_64-elf-ar
 
 # User controllable linker command.
-$(call USER_VARIABLE,LD,x86_64-elf-ld)
+LD := x86_64-elf-ld
 
 # User controllable C flags.
-$(call USER_VARIABLE,CFLAGS,-Wpedantic -g -O2 -pipe -DPRINTF_INCLUDE_CONFIG_H)
+CFLAGS := -Wpedantic -g -O2 -pipe -DPRINTF_INCLUDE_CONFIG_H
 
 # User controllable C preprocessor flags. We set none by default.
-$(call USER_VARIABLE,CPPFLAGS,)
+CPPFLAGS :=
 
 # User controllable nasm flags.
-$(call USER_VARIABLE,NASMFLAGS,-F dwarf -g)
+NASMFLAGS := -F dwarf -g
 
 # User controllable linker flags. We set none by default.
-$(call USER_VARIABLE,LDFLAGS,)
+LDFLAGS :=
 
 # Ensure the dependencies have been obtained.
 ifneq ($(shell ( test '$(MAKECMDGOALS)' = clean || test '$(MAKECMDGOALS)' = distclean ); echo $$?),0)
@@ -79,6 +73,7 @@ override CPPFLAGS := \
     -I src \
     -isystem freestnd-c-hdrs-0bsd \
     $(CPPFLAGS) \
+    -DLIMINE_API_REVISION=1 \
     -MMD \
     -MP
 
@@ -109,7 +104,7 @@ override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 all: bin/$(OUTPUT)
 
 # Link rules for building the C compiler runtime.
-cc-runtime-x86_64/cc-runtime.a: cc-runtime/*
+cc-runtime-x86_64/cc-runtime.a: GNUmakefile cc-runtime/*
 	rm -rf cc-runtime-x86_64
 	cp -r cc-runtime cc-runtime-x86_64
 	$(MAKE) -C cc-runtime-x86_64 -f cc-runtime.mk \
