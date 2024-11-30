@@ -6,6 +6,7 @@
 #include "kpanic/kpanic.h"
 #include "kprintf/kprintf.h"
 #include "limine.h"
+#include "memory/pmm/pmm.h"
 
 __attribute__((used, section(".limine_requests")))
 static volatile LIMINE_BASE_REVISION(3)
@@ -13,6 +14,18 @@ static volatile LIMINE_BASE_REVISION(3)
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request fb_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0
 };
 
@@ -26,6 +39,9 @@ static void halt(void) {
     __asm__ volatile("cli; hlt");
 }
 
+uint64_t hhdm_offset;
+struct limine_memmap_response *memmap;
+
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         halt();
@@ -35,11 +51,15 @@ void kmain(void) {
         halt();
     }
 
+    hhdm_offset = hhdm_request.response->offset;
+    memmap = memmap_request.response;
+
     kprintf_init(fb_request.response->framebuffers[0]);
     kprintf("Hello, %s!\n", "World");
 
     gdt_init();
     idt_init();
+    pmm_init();
     
     kpanic("End of kmain");
 }
