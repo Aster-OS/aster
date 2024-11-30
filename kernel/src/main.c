@@ -3,6 +3,7 @@
 
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/idt/idt.h"
+#include "kpanic/kpanic.h"
 #include "kprintf/kprintf.h"
 #include "limine.h"
 
@@ -40,5 +41,5 @@ void kmain(void) {
     gdt_init();
     idt_init();
     
-    halt();
+    kpanic("End of kmain");
 }
