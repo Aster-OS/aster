@@ -1,5 +1,3 @@
-#include <stddef.h>
-
 #include "kprintf/kprintf.h"
 #include "lib/align.h"
 #include "memory/pmm/pmm.h"
@@ -21,37 +19,6 @@ extern unsigned char __DATA_START[], __DATA_END[];
 extern unsigned char __LIMINE_REQUESTS_START[], __LIMINE_REQUESTS_END[];
 
 static uint64_t kernel_pagemap;
-
-static uint64_t vmm_get_next_pml(uint64_t pml, uint64_t pml_index) {
-    uint64_t *pml_hhdm = (uint64_t *) (pml + hhdm_offset);
-    uint64_t *pml_entry = &pml_hhdm[pml_index];
-
-    if (*pml_entry & PTE_FLAG_PRESENT) {
-        return *pml_entry & PTE_PHYS_ADDR_MASK;
-    }
-
-    // the requested flags will be set only for the pml1 entry,
-    // allowing pages with different permissions at the last level
-    // all other pml entries are granted all permissions (write, user, execute)
-    *pml_entry = (uint64_t) pmm_alloc(true) | PTE_FLAG_PRESENT | PTE_FLAG_WRITE | PTE_FLAG_USER;
-    return *pml_entry & PTE_PHYS_ADDR_MASK;
-}
-
-void vmm_map_page(uint64_t pagemap, uint64_t virtual_address, uint64_t physical_address, uint64_t flags) {
-    uint64_t pml4_index = (virtual_address >> 39) & 0x1ff;
-    uint64_t pml3_index = (virtual_address >> 30) & 0x1ff;
-    uint64_t pml2_index = (virtual_address >> 21) & 0x1ff;
-    uint64_t pml1_index = (virtual_address >> 12) & 0x1ff;
-
-    uint64_t pml4 = pagemap;
-    uint64_t pml3 = vmm_get_next_pml(pml4, pml4_index);
-    uint64_t pml2 = vmm_get_next_pml(pml3, pml3_index);
-    uint64_t pml1 = vmm_get_next_pml(pml2, pml2_index);
-
-    uint64_t *pml1_hhdm = (uint64_t *) (pml1 + hhdm_offset);
-    // pages are always mapped with the present flag set
-    pml1_hhdm[pml1_index] = physical_address | PTE_FLAG_PRESENT | flags;
-}
 
 void vmm_init(void) {
     kernel_pagemap = (uint64_t) pmm_alloc(true);
@@ -112,4 +79,53 @@ void vmm_init(void) {
 
 void vmm_load_kernel_pagemap(void) {
     __asm__ volatile("mov %0, %%cr3" : : "r" (kernel_pagemap) : "memory");
+}
+
+static uint64_t vmm_get_next_pml(uint64_t pml, uint64_t pml_index) {
+    uint64_t *pml_hhdm = (uint64_t *) (pml + hhdm_offset);
+    uint64_t *pml_entry = &pml_hhdm[pml_index];
+
+    if (*pml_entry & PTE_FLAG_PRESENT) {
+        return *pml_entry & PTE_PHYS_ADDR_MASK;
+    }
+
+    // the requested flags will be set only for the pml1 entry,
+    // allowing pages with different permissions at the last level
+    // all other pml entries are granted all permissions (write, user, execute)
+    *pml_entry = (uint64_t) pmm_alloc(true) | PTE_FLAG_PRESENT | PTE_FLAG_WRITE | PTE_FLAG_USER;
+    return *pml_entry & PTE_PHYS_ADDR_MASK;
+}
+
+static inline uint64_t *vmm_get_pml1_entry(uint64_t pagemap, uint64_t virt) {
+    uint64_t pml4_index = (virt >> 39) & 0x1ff;
+    uint64_t pml3_index = (virt >> 30) & 0x1ff;
+    uint64_t pml2_index = (virt >> 21) & 0x1ff;
+    uint64_t pml1_index = (virt >> 12) & 0x1ff;
+
+    uint64_t pml4 = pagemap;
+    uint64_t pml3 = vmm_get_next_pml(pml4, pml4_index);
+    uint64_t pml2 = vmm_get_next_pml(pml3, pml3_index);
+    uint64_t pml1 = vmm_get_next_pml(pml2, pml2_index);
+
+    uint64_t *pml1_hhdm = (uint64_t *) (pml1 + hhdm_offset);
+    uint64_t *pml1_entry = &pml1_hhdm[pml1_index];
+    return pml1_entry;
+}
+
+void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags) {
+    // pages are always mapped with the present flag set
+    *vmm_get_pml1_entry(pagemap, virt) = phys | PTE_FLAG_PRESENT | flags;
+}
+
+void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {
+    *vmm_get_pml1_entry(pagemap, virt) = 0;
+}
+
+uint64_t vmm_walk_page(uint64_t pagemap, uint64_t virt) {
+    uint64_t pml1_entry = *vmm_get_pml1_entry(pagemap, virt);
+    if (pml1_entry & PTE_FLAG_PRESENT) {
+        return pml1_entry & PTE_PHYS_ADDR_MASK;
+    } else {
+        return 0;
+    }
 }
