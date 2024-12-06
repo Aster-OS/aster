@@ -124,7 +124,8 @@ void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {
 uint64_t vmm_walk_page(uint64_t pagemap, uint64_t virt) {
     uint64_t pml1_entry = *vmm_get_pml1_entry(pagemap, virt);
     if (pml1_entry & PTE_FLAG_PRESENT) {
-        return pml1_entry & PTE_PHYS_ADDR_MASK;
+        uint64_t page_offset = virt & 0xfff;
+        return (pml1_entry & PTE_PHYS_ADDR_MASK) | page_offset;
     } else {
         return 0;
     }
