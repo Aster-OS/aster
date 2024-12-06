@@ -72,13 +72,17 @@ void vmm_init(void) {
         }
     }
 
-    vmm_load_kernel_pagemap();
+    vmm_load_pagemap(kernel_pagemap);
 
     kprintf("VMM initialized\n");
 }
 
-void vmm_load_kernel_pagemap(void) {
-    __asm__ volatile("mov %0, %%cr3" : : "r" (kernel_pagemap) : "memory");
+uint64_t vmm_get_kernel_pagemap(void) {
+    return kernel_pagemap;
+}
+
+void vmm_load_pagemap(uint64_t pagemap) {
+    __asm__ volatile("mov %0, %%cr3" : : "r" (pagemap) : "memory");
 }
 
 static uint64_t vmm_get_next_pml(uint64_t pml, uint64_t pml_index) {
