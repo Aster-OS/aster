@@ -44,3 +44,13 @@ int kprintf(const char* format, ...) {
 
     return ret;
 }
+
+int kvprintf(const char* format, va_list va) {
+    const int ret = vprintf_(format, va);
+
+    if (ft_ctx->autoflush) {
+        ft_ctx->double_buffer_flush(ft_ctx);
+    }
+
+    return ret;
+}

@@ -71,5 +71,5 @@ void kmain(void) {
     pmm_init();
     vmm_init();
 
-    kpanic("End of kmain");
+    kpanic("End of kmain\n");
 }

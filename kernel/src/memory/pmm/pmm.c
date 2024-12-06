@@ -50,7 +50,7 @@ void *pmm_alloc(bool zero_contents) {
     }
 
     if (page_index == bitmap.bit_length) {
-        kpanic("Out of memory");
+        kpanic("Out of memory\n");
     } else {
         bitmap_set_bit(&bitmap, page_index);
 
@@ -92,7 +92,7 @@ void *pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
     }
 
     if (!found_n_pages) {
-        kpanic("Out of memory");
+        kpanic("Out of memory\n");
     } else {
         for (uint64_t i = page_index; i < page_index + n_pages; i++) {
             bitmap_set_bit(&bitmap, i);
