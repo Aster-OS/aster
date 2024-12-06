@@ -3,12 +3,6 @@
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
-#define PTE_FLAG_PRESENT (1 << 0)
-#define PTE_FLAG_WRITE (1 << 1)
-#define PTE_FLAG_USER (1 << 2)
-#define PTE_FLAG_NX (1ull << 63)
-#define PTE_PHYS_ADDR_MASK 0x7fffffffff000
-
 extern uint64_t hhdm_offset;
 extern struct limine_memmap_response *memmap;
 extern struct limine_kernel_address_response *kaddr;
@@ -67,7 +61,7 @@ void vmm_init(void) {
             uint64_t entry_end = ALIGN_UP(entry->base + entry->length, PAGE_SIZE);
 
             for (uint64_t j = entry_start; j < entry_end; j += PAGE_SIZE) {
-                vmm_map_page(kernel_pagemap, j + hhdm_offset, j, PTE_FLAG_WRITE | PTE_FLAG_NX);
+                vmm_map_page(kernel_pagemap, j + hhdm_offset, j, PTE_FLAGS_HHDM);
             }
         }
     }
