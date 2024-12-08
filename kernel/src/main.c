@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "acpi/acpi.h"
+#include "acpi/madt.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/idt/idt.h"
 #include "kpanic/kpanic.h"
@@ -77,6 +78,7 @@ void kmain(void) {
     pmm_init(memmap);
     vmm_init(memmap, kaddr);
     acpi_init(rsdp->address);
+    madt_init();
 
     kpanic("End of kmain\n");
 }
