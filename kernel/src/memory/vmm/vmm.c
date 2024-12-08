@@ -1,20 +1,20 @@
+#include "kpanic/kpanic.h"
 #include "kprintf/kprintf.h"
 #include "lib/align.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
-extern uint64_t hhdm_offset;
-extern struct limine_memmap_response *memmap;
-extern struct limine_kernel_address_response *kaddr;
 
 extern unsigned char __TEXT_START[], __TEXT_END[];
 extern unsigned char __RODATA_START[], __RODATA_END[];
 extern unsigned char __DATA_START[], __DATA_END[];
 extern unsigned char __LIMINE_REQUESTS_START[], __LIMINE_REQUESTS_END[];
 
+static uint64_t hhdm_offset;
+
 static uint64_t kernel_pagemap;
 
-void vmm_init(void) {
+void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_address_response *kaddr) {
     kernel_pagemap = (uint64_t) pmm_alloc(true);
 
     uint64_t text_start = (uint64_t) &__TEXT_START;
@@ -71,6 +71,10 @@ void vmm_init(void) {
     kprintf("VMM initialized\n");
 }
 
+uint64_t vmm_get_hhdm_offset(void) {
+    return hhdm_offset;
+}
+
 uint64_t vmm_get_kernel_pagemap(void) {
     return kernel_pagemap;
 }
@@ -113,6 +117,14 @@ static inline uint64_t *vmm_get_pml1_entry(uint64_t pagemap, uint64_t virt) {
 void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags) {
     // pages are always mapped with the present flag set
     *vmm_get_pml1_entry(pagemap, virt) = phys | PTE_FLAG_PRESENT | flags;
+}
+
+void vmm_set_hhdm_offset(uint64_t offset) {
+    if (hhdm_offset != 0) {
+        kpanic("HHDM offset set twice\n");
+    }
+
+    hhdm_offset = offset;
 }
 
 void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {

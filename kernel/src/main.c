@@ -46,10 +46,6 @@ static void halt(void) {
     __asm__ volatile("cli; hlt");
 }
 
-uint64_t hhdm_offset;
-struct limine_kernel_address_response *kaddr;
-struct limine_memmap_response *memmap;
-
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         halt();
@@ -59,17 +55,20 @@ void kmain(void) {
         halt();
     }
 
-    hhdm_offset = hhdm_request.response->offset;
-    kaddr = kaddr_request.response;
-    memmap = memmap_request.response;
+    uint64_t hhdm_offset = hhdm_request.response->offset;
+    struct limine_kernel_address_response *kaddr = kaddr_request.response;
+    struct limine_memmap_response *memmap = memmap_request.response;
+    struct limine_rsdp_response *rsdp = rsdp_request.response;
 
     kprintf_init(fb_request.response->framebuffers[0]);
     kprintf("Hello, %s!\n", "World");
 
     gdt_init();
     idt_init();
-    pmm_init();
-    vmm_init();
+
+    vmm_set_hhdm_offset(hhdm_offset);
+    pmm_init(memmap);
+    vmm_init(memmap, kaddr);
 
     kpanic("End of kmain\n");
 }

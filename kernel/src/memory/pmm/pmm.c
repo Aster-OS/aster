@@ -3,14 +3,12 @@
 #include "lib/align.h"
 #include "lib/bitmap/bitmap.h"
 #include "memory/pmm/pmm.h"
-
-extern uint64_t hhdm_offset;
-extern struct limine_memmap_response *memmap;
+#include "memory/vmm/vmm.h"
 
 static struct bitmap_t bitmap;
 static uint64_t page_allocation_start;
 
-void pmm_init(void) {
+void pmm_init(struct limine_memmap_response *memmap) {
     struct limine_memmap_entry *largest_usable_entry = memmap->entries[0];
 
     for (size_t i = 0; i < memmap->entry_count; i++) {
@@ -34,7 +32,7 @@ void pmm_init(void) {
     // start allocating physical memory after the bitmap
     page_allocation_start = largest_usable_entry->base + pages_used_to_store_bitmap * PAGE_SIZE;
 
-    bitmap.start = (uint8_t *) (largest_usable_entry->base + hhdm_offset);
+    bitmap.start = (uint8_t *) (largest_usable_entry->base + vmm_get_hhdm_offset());
     bitmap.bit_length = usable_pages - pages_used_to_store_bitmap;
     for (uint64_t i = 0; i < pages_used_to_store_bitmap * PAGE_SIZE; i++) {
         bitmap.start[i] = 0;
@@ -59,7 +57,7 @@ void *pmm_alloc(bool zero_contents) {
             return (void *) page_phys;
         }
 
-        uint8_t *page_start = (uint8_t *) (page_phys + hhdm_offset);
+        uint8_t *page_start = (uint8_t *) (page_phys + vmm_get_hhdm_offset());
         uint8_t *page_end = (uint8_t *) (page_start + PAGE_SIZE);
         for (uint8_t *i = page_start; i < page_end; i++) {
             *i = 0;
@@ -103,7 +101,7 @@ void *pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
             return (void *) page_phys;
         }
 
-        uint8_t *page_start = (uint8_t *) (page_phys + hhdm_offset);
+        uint8_t *page_start = (uint8_t *) (page_phys + vmm_get_hhdm_offset());
         uint8_t *page_end = (uint8_t *) (page_start + n_pages * PAGE_SIZE);
         for (uint8_t *i = page_start; i < page_end; i++) {
             *i = 0;
@@ -147,7 +145,7 @@ static char *get_entry_type(uint64_t entry_type) {
     }
 }
 
-void pmm_print_memmap(void) {
+void pmm_print_memmap(struct limine_memmap_response *memmap) {
     for (size_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
         uint64_t start = entry->base;
