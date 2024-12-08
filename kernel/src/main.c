@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "acpi/acpi.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/idt/idt.h"
 #include "kpanic/kpanic.h"
@@ -33,6 +34,12 @@ static volatile struct limine_kernel_address_request kaddr_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST,
     .revision = 0
 };
 
@@ -69,6 +76,7 @@ void kmain(void) {
     vmm_set_hhdm_offset(hhdm_offset);
     pmm_init(memmap);
     vmm_init(memmap, kaddr);
+    acpi_init(rsdp->address);
 
     kpanic("End of kmain\n");
 }
