@@ -4,6 +4,7 @@
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
+#define PTE_FLAG_PRESENT (1 << 0)
 
 extern unsigned char __TEXT_START[], __TEXT_END[];
 extern unsigned char __RODATA_START[], __RODATA_END[];

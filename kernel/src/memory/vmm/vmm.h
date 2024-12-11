@@ -2,7 +2,6 @@
 
 #include "limine.h"
 
-#define PTE_FLAG_PRESENT (1 << 0)
 #define PTE_FLAG_WRITE (1 << 1)
 #define PTE_FLAG_USER (1 << 2)
 #define PTE_FLAG_NX (1ull << 63)
