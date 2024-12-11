@@ -81,4 +81,6 @@ void acpi_init(uint64_t rsdp_address) {
         uint64_t entry_address = xsdt->entries[i];
         vmm_map_page(vmm_get_kernel_pagemap(), entry_address + vmm_get_hhdm_offset(), entry_address, PTE_FLAGS_HHDM);
     }
+
+    kprintf("ACPI initialized\n");
 }
