@@ -84,7 +84,7 @@ void vmm_load_pagemap(uint64_t pagemap) {
     __asm__ volatile("mov %0, %%cr3" : : "r" (pagemap) : "memory");
 }
 
-static uint64_t vmm_get_next_pml(uint64_t pml, uint64_t pml_index) {
+static uint64_t get_next_pml(uint64_t pml, uint64_t pml_index) {
     uint64_t *pml_hhdm = (uint64_t *) (pml + hhdm_offset);
     uint64_t *pml_entry = &pml_hhdm[pml_index];
 
@@ -99,16 +99,16 @@ static uint64_t vmm_get_next_pml(uint64_t pml, uint64_t pml_index) {
     return *pml_entry & PTE_PHYS_ADDR_MASK;
 }
 
-static inline uint64_t *vmm_get_pml1_entry(uint64_t pagemap, uint64_t virt) {
+static inline uint64_t *get_pml1_entry(uint64_t pagemap, uint64_t virt) {
     uint64_t pml4_index = (virt >> 39) & 0x1ff;
     uint64_t pml3_index = (virt >> 30) & 0x1ff;
     uint64_t pml2_index = (virt >> 21) & 0x1ff;
     uint64_t pml1_index = (virt >> 12) & 0x1ff;
 
     uint64_t pml4 = pagemap;
-    uint64_t pml3 = vmm_get_next_pml(pml4, pml4_index);
-    uint64_t pml2 = vmm_get_next_pml(pml3, pml3_index);
-    uint64_t pml1 = vmm_get_next_pml(pml2, pml2_index);
+    uint64_t pml3 = get_next_pml(pml4, pml4_index);
+    uint64_t pml2 = get_next_pml(pml3, pml3_index);
+    uint64_t pml1 = get_next_pml(pml2, pml2_index);
 
     uint64_t *pml1_hhdm = (uint64_t *) (pml1 + hhdm_offset);
     uint64_t *pml1_entry = &pml1_hhdm[pml1_index];
@@ -117,7 +117,7 @@ static inline uint64_t *vmm_get_pml1_entry(uint64_t pagemap, uint64_t virt) {
 
 void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags) {
     // pages are always mapped with the present flag set
-    *vmm_get_pml1_entry(pagemap, virt) = phys | PTE_FLAG_PRESENT | flags;
+    *get_pml1_entry(pagemap, virt) = phys | PTE_FLAG_PRESENT | flags;
 }
 
 void vmm_set_hhdm_offset(uint64_t offset) {
@@ -129,11 +129,11 @@ void vmm_set_hhdm_offset(uint64_t offset) {
 }
 
 void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {
-    *vmm_get_pml1_entry(pagemap, virt) = 0;
+    *get_pml1_entry(pagemap, virt) = 0;
 }
 
 uint64_t vmm_walk_page(uint64_t pagemap, uint64_t virt) {
-    uint64_t pml1_entry = *vmm_get_pml1_entry(pagemap, virt);
+    uint64_t pml1_entry = *get_pml1_entry(pagemap, virt);
     if (pml1_entry & PTE_FLAG_PRESENT) {
         uint64_t page_offset = virt & 0xfff;
         return (pml1_entry & PTE_PHYS_ADDR_MASK) | page_offset;
