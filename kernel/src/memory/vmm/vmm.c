@@ -115,9 +115,19 @@ static inline uint64_t *get_pml1_entry(uint64_t pagemap, uint64_t virt) {
     return pml1_entry;
 }
 
+static inline void invlpg_if_needed(uint64_t pagemap, uint64_t virt) {
+    uint64_t curr_pagemap;
+    __asm__ volatile("mov %%cr3, %0" : "=r" (curr_pagemap) : : "memory");
+
+    if (curr_pagemap == pagemap) {
+        __asm__ volatile("invlpg (%0)" : : "r" (virt) : "memory");
+    }
+}
+
 void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags) {
     // pages are always mapped with the present flag set
     *get_pml1_entry(pagemap, virt) = phys | PTE_FLAG_PRESENT | flags;
+    invlpg_if_needed(pagemap, virt);
 }
 
 void vmm_set_hhdm_offset(uint64_t offset) {
@@ -130,6 +140,7 @@ void vmm_set_hhdm_offset(uint64_t offset) {
 
 void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {
     *get_pml1_entry(pagemap, virt) = 0;
+    invlpg_if_needed(pagemap, virt);
 }
 
 uint64_t vmm_walk_page(uint64_t pagemap, uint64_t virt) {
