@@ -33,7 +33,7 @@ void pmm_init(struct limine_memmap_response *memmap) {
     page_allocation_start = largest_usable_entry->base + pages_used_to_store_bitmap * PAGE_SIZE;
 
     bitmap.start = (uint8_t *) (largest_usable_entry->base + vmm_get_hhdm_offset());
-    bitmap.bit_length = usable_pages - pages_used_to_store_bitmap;
+    bitmap.bit_count = usable_pages - pages_used_to_store_bitmap;
     for (uint64_t i = 0; i < pages_used_to_store_bitmap * PAGE_SIZE; i++) {
         bitmap.start[i] = 0;
     }
@@ -43,11 +43,11 @@ void pmm_init(struct limine_memmap_response *memmap) {
 
 void *pmm_alloc(bool zero_contents) {
     uint64_t page_index = 0;
-    while (page_index < bitmap.bit_length && bitmap_get_bit(&bitmap, page_index)) {
+    while (page_index < bitmap.bit_count && bitmap_get_bit(&bitmap, page_index)) {
         page_index++;
     }
 
-    if (page_index == bitmap.bit_length) {
+    if (page_index == bitmap.bit_count) {
         kpanic("Out of memory\n");
     } else {
         bitmap_set_bit(&bitmap, page_index);
@@ -70,7 +70,7 @@ void *pmm_alloc(bool zero_contents) {
 void *pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
     uint8_t found_n_pages = 0;
     uint64_t page_index = 0;
-    while (page_index < bitmap.bit_length - n_pages + 1) {
+    while (page_index < bitmap.bit_count - n_pages + 1) {
         if (!bitmap_get_bit(&bitmap, page_index)) {
             found_n_pages = 1;
             
