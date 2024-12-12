@@ -27,7 +27,7 @@ void pmm_init(struct limine_memmap_response *memmap) {
     // each page stores the state of (8 * PAGE_SIZE) usable pages
     //   N pages store  the state of    USABLE_PAGES usable pages
     // N = USABLE_PAGES / (8*PAGE_SIZE) [aligned up!]
-    uint64_t pages_used_to_store_bitmap = DIV_ALIGN_UP(usable_pages, 8 * PAGE_SIZE);
+    uint64_t pages_used_to_store_bitmap = div_and_align_up(usable_pages, 8 * PAGE_SIZE);
 
     // start allocating physical memory after the bitmap
     page_allocation_start = largest_usable_entry->base + pages_used_to_store_bitmap * PAGE_SIZE;

@@ -1,5 +1,13 @@
 #pragma once
 
-#define ALIGN_DOWN(x, align) ((x) / (align) * (align))
-#define ALIGN_UP(x, align) (((x) + (align) - 1) / (align) * (align))
-#define DIV_ALIGN_UP(x, y) (((x) + (y) - 1) / (y))
+static inline uint64_t align_down(uint64_t x, uint64_t align) {
+    return x / align * align;
+}
+
+static inline uint64_t align_up(uint64_t x, uint64_t align) {
+    return (x + align - 1) / align * align;
+}
+
+static inline uint64_t div_and_align_up(uint64_t x, uint64_t align) {
+    return (x + align - 1) / align;
+}

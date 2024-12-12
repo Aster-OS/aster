@@ -58,8 +58,8 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_addres
         // as per Limine base revision 3
         if (entry->type == LIMINE_MEMMAP_USABLE || entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE
         || entry->type == LIMINE_MEMMAP_KERNEL_AND_MODULES || entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
-            uint64_t entry_start = ALIGN_DOWN(entry->base, PAGE_SIZE);
-            uint64_t entry_end = ALIGN_UP(entry->base + entry->length, PAGE_SIZE);
+            uint64_t entry_start = align_down(entry->base, PAGE_SIZE);
+            uint64_t entry_end = align_up(entry->base + entry->length, PAGE_SIZE);
 
             for (uint64_t j = entry_start; j < entry_end; j += PAGE_SIZE) {
                 vmm_map_page(kernel_pagemap, j + hhdm_offset, j, PTE_FLAGS_HHDM);
@@ -131,7 +131,7 @@ void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags
 }
 
 void vmm_map_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t length, uint64_t flags) {
-    uint64_t length_in_pages = DIV_ALIGN_UP(length, PAGE_SIZE);
+    uint64_t length_in_pages = div_and_align_up(virt_start + length, PAGE_SIZE) - align_down(virt_start, PAGE_SIZE);
     for (uint64_t i = 0; i < length_in_pages; i += PAGE_SIZE) {
         vmm_map_page(pagemap, virt_start + i, phys_start + i, flags);
     }
@@ -151,7 +151,7 @@ void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {
 }
 
 void vmm_unmap_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t length, uint64_t flags) {
-    uint64_t length_in_pages = DIV_ALIGN_UP(length, PAGE_SIZE);
+    uint64_t length_in_pages = div_and_align_up(length, PAGE_SIZE);
     for (uint64_t i = 0; i < length_in_pages; i += PAGE_SIZE) {
         vmm_map_page(pagemap, virt_start + i, phys_start + i, flags);
     }
