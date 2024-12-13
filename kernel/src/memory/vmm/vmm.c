@@ -130,9 +130,9 @@ void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags
     invlpg_if_needed(pagemap, virt);
 }
 
-void vmm_map_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t length, uint64_t flags) {
-    uint64_t length_in_pages = div_and_align_up(virt_start + length, PAGE_SIZE) - align_down(virt_start, PAGE_SIZE);
-    for (uint64_t i = 0; i < length_in_pages; i += PAGE_SIZE) {
+void vmm_map_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t page_count, uint64_t flags) {
+    uint64_t length = page_count * PAGE_SIZE;
+    for (uint64_t i = 0; i < length; i += PAGE_SIZE) {
         vmm_map_page(pagemap, virt_start + i, phys_start + i, flags);
     }
 }
@@ -150,10 +150,10 @@ void vmm_unmap_page(uint64_t pagemap, uint64_t virt) {
     invlpg_if_needed(pagemap, virt);
 }
 
-void vmm_unmap_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t length, uint64_t flags) {
-    uint64_t length_in_pages = div_and_align_up(length, PAGE_SIZE);
-    for (uint64_t i = 0; i < length_in_pages; i += PAGE_SIZE) {
-        vmm_map_page(pagemap, virt_start + i, phys_start + i, flags);
+void vmm_unmap_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t page_count) {
+    uint64_t length = page_count * PAGE_SIZE;
+    for (uint64_t i = 0; i < length; i += PAGE_SIZE) {
+        vmm_unmap_page(pagemap, virt_start + i);
     }
 }
 

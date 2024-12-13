@@ -17,5 +17,5 @@ void vmm_map_page(uint64_t pagemap, uint64_t virt, uint64_t phys, uint64_t flags
 void vmm_map_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t length, uint64_t flags);
 void vmm_set_hhdm_offset(uint64_t offset);
 void vmm_unmap_page(uint64_t pagemap, uint64_t virt);
-void vmm_unmap_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t phys_start, uint64_t length, uint64_t flags);
+void vmm_unmap_range_contig(uint64_t pagemap, uint64_t virt_start, uint64_t length);
 uint64_t vmm_walk_page(uint64_t pagemap, uint64_t virt);
