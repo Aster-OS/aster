@@ -22,9 +22,6 @@ struct __attribute__((packed)) xsdt_t {
     uint64_t entries[];
 };
 
-extern uint64_t hhdm_offset;
-extern struct limine_rsdp_response *rsdp;
-
 static struct xsdt_t *xsdt;
 static uint64_t xsdt_entry_count;
 
