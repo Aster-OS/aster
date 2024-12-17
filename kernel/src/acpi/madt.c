@@ -64,7 +64,7 @@ void madt_init(void) {
         kpanic("MADT not found\n");
     }
 
-    if (acpi_calculate_table_checksum((void *) madt) != 0) {
+    if (acpi_calculate_table_checksum((phys_t) madt) != 0) {
         kpanic("Invalid MADT checksum\n");
     }
 

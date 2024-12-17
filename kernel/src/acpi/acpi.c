@@ -19,13 +19,13 @@ struct __attribute__((packed)) xsdp_t {
 
 struct __attribute__((packed)) xsdt_t {
     struct sdt_header_t header;
-    uint64_t entries[];
+    phys_t entries[];
 };
 
 static struct xsdt_t *xsdt;
 static uint64_t xsdt_entry_count;
 
-uint8_t acpi_calculate_table_checksum(void *table) {
+uint8_t acpi_calculate_table_checksum(phys_t table) {
     struct sdt_header_t *header = (struct sdt_header_t *) table;
 
     // when calculating the checksum, only the last byte matters
@@ -48,7 +48,7 @@ struct sdt_header_t *acpi_get_table(char *signature) {
     return NULL;
 }
 
-void acpi_init(uint64_t rsdp_address) {
+void acpi_init(phys_t rsdp_address) {
     vmm_map_page(vmm_get_kernel_pagemap(), rsdp_address + vmm_get_hhdm_offset(), rsdp_address, PTE_FLAGS_HHDM);
     struct xsdp_t *xsdp = (struct xsdp_t *) (rsdp_address + vmm_get_hhdm_offset());
 
@@ -68,14 +68,14 @@ void acpi_init(uint64_t rsdp_address) {
     vmm_map_page(vmm_get_kernel_pagemap(), xsdp->xsdt_address + vmm_get_hhdm_offset(), xsdp->xsdt_address, PTE_FLAGS_HHDM);
     xsdt = (struct xsdt_t *) (xsdp->xsdt_address + vmm_get_hhdm_offset());
 
-    if (acpi_calculate_table_checksum((void *) xsdt) != 0) {
+    if (acpi_calculate_table_checksum((phys_t) xsdt) != 0) {
         kpanic("Invalid XSDT checksum\n");
     }
 
     xsdt_entry_count = (xsdt->header.length - offsetof(struct xsdt_t, entries)) / 8;
 
     for (uint32_t i = 0; i < xsdt_entry_count; i++) {
-        uint64_t entry_address = xsdt->entries[i];
+        phys_t entry_address = xsdt->entries[i];
         vmm_map_page(vmm_get_kernel_pagemap(), entry_address + vmm_get_hhdm_offset(), entry_address, PTE_FLAGS_HHDM);
     }
 
