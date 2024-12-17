@@ -8,6 +8,7 @@
 #include "kpanic/kpanic.h"
 #include "kprintf/kprintf.h"
 #include "limine.h"
+#include "memory/kheap/kheap.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
@@ -77,6 +78,7 @@ void kmain(void) {
     vmm_set_hhdm_offset(hhdm_offset);
     pmm_init(memmap);
     vmm_init(memmap, kaddr);
+    kheap_init();
     acpi_init(rsdp->address);
     madt_init();
 
