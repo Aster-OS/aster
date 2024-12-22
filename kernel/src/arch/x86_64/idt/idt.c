@@ -7,9 +7,9 @@
 
 #define IDT_MAX_DESCRIPTORS 256
 
-#define IDT_DESCRIPTOR_ATTR_INTERRUPT_GATE 0xe
-#define IDT_DESCRIPTOR_ATTR_PRESENT 0x80
-#define IDT_DESCRIPTOR_ATTR (IDT_DESCRIPTOR_ATTR_INTERRUPT_GATE | IDT_DESCRIPTOR_ATTR_PRESENT)
+static const uint8_t IDT_DESC_ATTR_INTERRUPT_GATE = 0xe;
+static const uint8_t IDT_DESC_ATTR_PRESENT = 0x80;
+static const uint8_t IDT_DESC_ATTR = IDT_DESC_ATTR_PRESENT | IDT_DESC_ATTR_INTERRUPT_GATE;
 
 struct __attribute__((packed)) idt_descriptor_t {
     uint16_t addr_0_15;
@@ -36,7 +36,7 @@ static void idt_set_descriptor(uint8_t vector, uint64_t addr, uint16_t ist) {
     idt_descriptor->addr_0_15 = addr & 0xffff;
     idt_descriptor->dest_cs = GDT_SELECTOR_KERNEL_CODE;
     idt_descriptor->ist = ist;
-    idt_descriptor->attr = IDT_DESCRIPTOR_ATTR;
+    idt_descriptor->attr = IDT_DESC_ATTR;
     idt_descriptor->addr_16_31 = (addr >> 16) & 0xffff;
     idt_descriptor->addr_32_63 = addr >> 32;
     idt_descriptor->reserved = 0;

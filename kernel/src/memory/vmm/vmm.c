@@ -4,7 +4,7 @@
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
-#define PTE_FLAG_PRESENT (1 << 0)
+static const uint64_t PTE_FLAG_PRESENT = 1 << 0;
 
 typedef uint64_t pml_entry_t;
 
