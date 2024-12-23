@@ -8,12 +8,11 @@
 #define PTE_FLAG_NX (1ull << 63)
 #define PTE_PHYS_ADDR_MASK 0x7fffffffff000
 
-#define PTE_FLAGS_HHDM (PTE_FLAG_WRITE | PTE_FLAG_NX)
-
 void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_address_response *kaddr);
 uintptr_t vmm_get_hhdm_offset(void);
 phys_t vmm_get_kernel_pagemap(void);
 void vmm_load_pagemap(phys_t pagemap);
+void vmm_map_hhdm(phys_t phys);
 void vmm_map_page(phys_t pagemap, uintptr_t virt, phys_t phys, uint64_t flags);
 void vmm_map_range_contig(phys_t pagemap, uintptr_t virt_start, phys_t phys_start, uint64_t page_count, uint64_t flags);
 void vmm_set_hhdm_offset(uintptr_t offset);

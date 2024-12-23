@@ -5,6 +5,7 @@
 #include "memory/vmm/vmm.h"
 
 static const uint64_t PTE_FLAG_PRESENT = 1 << 0;
+static const uint64_t PTE_FLAGS_HHDM = PTE_FLAG_WRITE | PTE_FLAG_NX;
 
 typedef uint64_t pml_entry_t;
 
@@ -124,6 +125,10 @@ static inline void invlpg_if_needed(phys_t pagemap, uintptr_t virt) {
     if (curr_pagemap == pagemap) {
         __asm__ volatile("invlpg (%0)" : : "r" (virt) : "memory");
     }
+}
+
+void vmm_map_hhdm(phys_t phys) {
+    vmm_map_page(kernel_pagemap, phys + hhdm_offset, phys, PTE_FLAGS_HHDM);
 }
 
 void vmm_map_page(phys_t pagemap, uintptr_t virt, phys_t phys, uint64_t flags) {

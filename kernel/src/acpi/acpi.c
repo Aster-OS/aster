@@ -49,7 +49,7 @@ struct sdt_header_t *acpi_get_table(char *signature) {
 }
 
 void acpi_init(phys_t rsdp_address) {
-    vmm_map_page(vmm_get_kernel_pagemap(), rsdp_address + vmm_get_hhdm_offset(), rsdp_address, PTE_FLAGS_HHDM);
+    vmm_map_hhdm(rsdp_address);
     struct xsdp_t *xsdp = (struct xsdp_t *) (rsdp_address + vmm_get_hhdm_offset());
 
     if (xsdp->revision < 2) {
@@ -65,7 +65,7 @@ void acpi_init(phys_t rsdp_address) {
         kpanic("Invalid XSDP checksum\n");
     }
 
-    vmm_map_page(vmm_get_kernel_pagemap(), xsdp->xsdt_address + vmm_get_hhdm_offset(), xsdp->xsdt_address, PTE_FLAGS_HHDM);
+    vmm_map_hhdm(xsdp->xsdt_address);
     xsdt = (struct xsdt_t *) (xsdp->xsdt_address + vmm_get_hhdm_offset());
 
     if (acpi_calculate_table_checksum((phys_t) xsdt) != 0) {
@@ -76,7 +76,7 @@ void acpi_init(phys_t rsdp_address) {
 
     for (uint32_t i = 0; i < xsdt_entry_count; i++) {
         phys_t entry_address = xsdt->entries[i];
-        vmm_map_page(vmm_get_kernel_pagemap(), entry_address + vmm_get_hhdm_offset(), entry_address, PTE_FLAGS_HHDM);
+        vmm_map_hhdm(entry_address);
     }
 
     kprintf("ACPI initialized\n");
