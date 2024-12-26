@@ -1,3 +1,4 @@
+#include "arch/x86_64/asm_wrappers.h"
 #include "kpanic/kpanic.h"
 #include "kprintf/kprintf.h"
 #include "lib/align.h"
@@ -84,7 +85,7 @@ phys_t vmm_get_kernel_pagemap(void) {
 }
 
 void vmm_load_pagemap(phys_t pagemap) {
-    __asm__ volatile("mov %0, %%cr3" : : "r" (pagemap) : "memory");
+    wr_cr3(pagemap);
 }
 
 static phys_t get_next_pml(phys_t pml, uint16_t pml_index) {
@@ -119,11 +120,9 @@ static inline pml_entry_t *get_pml1_entry(phys_t pagemap, uintptr_t virt) {
 }
 
 static inline void invlpg_if_needed(phys_t pagemap, uintptr_t virt) {
-    phys_t curr_pagemap;
-    __asm__ volatile("mov %%cr3, %0" : "=r" (curr_pagemap) : : "memory");
-
-    if (curr_pagemap == pagemap) {
-        __asm__ volatile("invlpg (%0)" : : "r" (virt) : "memory");
+    phys_t curr_pagemap = rd_cr3();
+    if (pagemap == curr_pagemap) {
+        invlpg(virt);
     }
 }
 

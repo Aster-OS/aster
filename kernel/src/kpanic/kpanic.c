@@ -1,5 +1,6 @@
 #include <stdarg.h>
 
+#include "arch/x86_64/asm_wrappers.h"
 #include "kpanic/kpanic.h"
 #include "kprintf/kprintf.h"
 
@@ -12,6 +13,6 @@ void kpanic(const char* format, ...) {
     kvprintf(format, va);
     va_end(va);
 
-    __asm__ volatile("cli; hlt");
-    while (1);
+    disable_interrupts();
+    while (1) halt();
 }

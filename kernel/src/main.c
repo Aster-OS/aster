@@ -3,6 +3,7 @@
 
 #include "acpi/acpi.h"
 #include "acpi/madt.h"
+#include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/idt/idt.h"
 #include "kpanic/kpanic.h"
@@ -50,10 +51,6 @@ static volatile LIMINE_REQUESTS_START_MARKER
 
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER
-
-static void halt(void) {
-    __asm__ volatile("cli; hlt");
-}
 
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
