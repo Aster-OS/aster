@@ -51,25 +51,25 @@ struct __attribute__((packed)) madt_x2lapic_t {
 };
 
 struct __attribute__((packed)) madt_t {
-    struct sdt_header_t header;
+    struct sdt_hdr_t hdr;
     uint32_t lapic_address;
     uint32_t flags;
     uint8_t entries[];
 };
 
 void madt_init(void) {
-    struct madt_t *madt = (struct madt_t *) acpi_get_table("APIC");
+    struct madt_t *madt = (struct madt_t *) acpi_find_table("APIC");
 
     if (madt == NULL) {
         kpanic("MADT not found\n");
     }
 
-    if (acpi_calculate_table_checksum((phys_t) madt) != 0) {
+    if (acpi_calculate_table_checksum((void *) madt) != 0) {
         kpanic("Invalid MADT checksum\n");
     }
 
     kprintf("MADT entries:\n");
-    uint32_t entries_length = madt->header.length - offsetof(struct madt_t, entries);
+    uint32_t entries_length = madt->hdr.length - offsetof(struct madt_t, entries);
 
     uint32_t i = 0;
     while (i < entries_length) {

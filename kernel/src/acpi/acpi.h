@@ -4,7 +4,7 @@
 
 #include "memory/pmm/pmm.h"
 
-struct __attribute__((packed)) sdt_header_t {
+struct __attribute__((packed)) sdt_hdr_t {
     char signature[4];
     uint32_t length;
     uint8_t revision;
@@ -16,6 +16,6 @@ struct __attribute__((packed)) sdt_header_t {
     uint32_t creator_revision;
 };
 
-uint8_t acpi_calculate_table_checksum(phys_t table);
-struct sdt_header_t *acpi_get_table(char *signature);
-void acpi_init(phys_t rsdp_address);
+uint8_t acpi_calculate_table_checksum(void *table);
+struct sdt_hdr_t *acpi_find_table(char *signature);
+void acpi_init(phys_t rsdp_addr);

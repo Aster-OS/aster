@@ -5,78 +5,125 @@
 #include "limine.h"
 #include "memory/vmm/vmm.h"
 
+struct __attribute__((packed)) rsdp_t {
+    char signature[8];
+    uint8_t checksum;
+    char oem_id[6];
+    uint8_t revision;
+    uint32_t rsdt_address;
+};
+
 struct __attribute__((packed)) xsdp_t {
     char signature[8];
     uint8_t checksum;
     char oem_id[6];
     uint8_t revision;
     uint32_t rsdt_address;
+    // The following fields exist only in ACPI v2+
     uint32_t length;
     uint64_t xsdt_address;
     uint8_t extended_checksum;
     uint8_t reserved[3];
 };
 
-struct __attribute__((packed)) xsdt_t {
-    struct sdt_header_t header;
-    phys_t entries[];
+struct __attribute__((packed)) rsdt_t {
+    struct sdt_hdr_t hdr;
+    uint32_t entries[];
 };
 
-static struct xsdt_t *xsdt;
-static uint64_t xsdt_entry_count;
+struct __attribute__((packed)) xsdt_t {
+    struct sdt_hdr_t hdr;
+    uint64_t entries[];
+};
 
-uint8_t acpi_calculate_table_checksum(phys_t table) {
-    struct sdt_header_t *header = (struct sdt_header_t *) table;
+static bool xsdt_supported;
+static void *rsdt_or_xsdt;
+static uint64_t acpi_table_count;
 
-    // when calculating the checksum, only the last byte matters
+uint8_t acpi_calculate_table_checksum(void *table) {
+    struct sdt_hdr_t *hdr = (struct sdt_hdr_t *) table;
+
+    // Only the last byte of the checksum matters
     uint8_t checksum = 0;
-    for (uint32_t i = 0; i < header->length; i++) {
+    for (uint32_t i = 0; i < hdr->length; i++) {
         checksum += ((uint8_t *) table)[i];
     }
 
     return checksum;
 }
 
-struct sdt_header_t *acpi_get_table(char *signature) {
-    for (uint64_t i = 0; i < xsdt_entry_count; i++) {
-        struct sdt_header_t *entry_header = (struct sdt_header_t *) (xsdt->entries[i] + vmm_get_hhdm_offset());
-        if (strncmp(entry_header->signature, signature, 4) == 0) {
-            return entry_header;
+struct sdt_hdr_t *acpi_find_table(char *signature) {
+    for (uint64_t i = 0; i < acpi_table_count; i++) {
+        phys_t table_addr;
+        if (xsdt_supported) {
+            table_addr = ((struct xsdt_t *) rsdt_or_xsdt)->entries[i];
+        } else {
+            table_addr = ((struct rsdt_t *) rsdt_or_xsdt)->entries[i];
+        }
+
+        // ACPI tables are mapped in the HHDM in initialization
+        struct sdt_hdr_t *table_hdr = (struct sdt_hdr_t *) (table_addr + vmm_get_hhdm_offset());
+        if (strncmp(table_hdr->signature, signature, 4) == 0) {
+            return table_hdr;
         }
     }
     
     return NULL;
 }
 
-void acpi_init(phys_t rsdp_address) {
-    vmm_map_hhdm(rsdp_address);
-    struct xsdp_t *xsdp = (struct xsdp_t *) (rsdp_address + vmm_get_hhdm_offset());
+void acpi_init(phys_t rsdp_addr) {
+    vmm_map_hhdm(rsdp_addr);
+    struct rsdp_t *rsdp = (struct rsdp_t *) (rsdp_addr + vmm_get_hhdm_offset());
+    struct xsdp_t *xsdp = (struct xsdp_t *) rsdp;
 
-    if (xsdp->revision < 2) {
-        kpanic("Unsupported RSDP revision (%d)\n", xsdp->revision);
+    kprintf("ACPI revision %d\n", rsdp->revision);
+
+    phys_t rsdt_or_xsdt_addr;
+    if (rsdp->revision < 2) {
+        rsdt_or_xsdt_addr = rsdp->rsdt_address;
+        xsdt_supported = false;
+    } else {
+        // ACPI version 2+, use the XSDT address instead
+        rsdt_or_xsdt_addr = xsdp->xsdt_address;
+        xsdt_supported = true;
     }
 
+    // Only the last byte of the checksum matters
     uint8_t checksum = 0;
-    for (uint32_t i = 0; i < sizeof(struct xsdp_t); i++) {
-        checksum += ((uint8_t *) xsdp)[i];
+    uint32_t rsdp_or_xsdp_sz = xsdt_supported ? sizeof(struct xsdp_t) : sizeof(struct rsdp_t);
+    for (uint32_t i = 0; i < rsdp_or_xsdp_sz; i++) {
+        // RSDP and XSDP point to the same addr, either can be used here
+        // the above calculated size is the one that matters
+        checksum += ((uint8_t *) rsdp)[i];
     }
 
     if (checksum != 0) {
-        kpanic("Invalid XSDP checksum\n");
+        kpanic("Invalid %s checksum\n", xsdt_supported ? "XSDP" : "RSDP");
     }
 
-    vmm_map_hhdm(xsdp->xsdt_address);
-    xsdt = (struct xsdt_t *) (xsdp->xsdt_address + vmm_get_hhdm_offset());
+    vmm_map_hhdm(rsdt_or_xsdt_addr);
+    rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
 
-    if (acpi_calculate_table_checksum((phys_t) xsdt) != 0) {
+    if (acpi_calculate_table_checksum(rsdt_or_xsdt) != 0) {
         kpanic("Invalid XSDT checksum\n");
     }
 
-    xsdt_entry_count = (xsdt->header.length - offsetof(struct xsdt_t, entries)) / 8;
+    if (xsdt_supported) {
+        struct xsdt_t *xsdt = (struct xsdt_t *) rsdt_or_xsdt;
+        acpi_table_count = (xsdt->hdr.length - sizeof(struct sdt_hdr_t)) / 8;
+    } else {
+        struct rsdt_t *rsdt = (struct rsdt_t *) rsdt_or_xsdt;
+        acpi_table_count = (rsdt->hdr.length - sizeof(struct sdt_hdr_t)) / 4;
+    }
 
-    for (uint32_t i = 0; i < xsdt_entry_count; i++) {
-        phys_t entry_address = xsdt->entries[i];
-        vmm_map_hhdm(entry_address);
+    for (uint64_t i = 0; i < acpi_table_count; i++) {
+        phys_t table_addr;
+        if (xsdt_supported) {
+            table_addr = ((struct xsdt_t *) rsdt_or_xsdt)->entries[i];
+        } else {
+            table_addr = ((struct rsdt_t *) rsdt_or_xsdt)->entries[i];
+        }
+        vmm_map_hhdm(table_addr);
     }
 
     kprintf("ACPI initialized\n");
