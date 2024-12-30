@@ -1,9 +1,8 @@
 #include <stddef.h>
-#include <stdint.h>
 
 #include "arch/x86_64/gdt/gdt_selectors.h"
 #include "arch/x86_64/idt/idt.h"
-#include "kprintf/kprintf.h"
+#include "klog/klog.h"
 
 #define IDT_MAX_DESCRIPTORS 256
 
@@ -54,5 +53,5 @@ void idt_init(void) {
     
     __asm__ volatile("lidt %0; sti;" : : "m" (idtr) : "memory");
 
-    kprintf("IDT initialized\n");    
+    klog_info("IDT initialized");    
 }

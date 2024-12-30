@@ -1,6 +1,6 @@
 #include "acpi/acpi.h"
+#include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "kprintf/kprintf.h"
 #include "lib/string.h"
 #include "limine.h"
 #include "memory/vmm/vmm.h"
@@ -76,7 +76,7 @@ void acpi_init(phys_t rsdp_addr) {
     struct rsdp_t *rsdp = (struct rsdp_t *) (rsdp_addr + vmm_get_hhdm_offset());
     struct xsdp_t *xsdp = (struct xsdp_t *) rsdp;
 
-    kprintf("ACPI revision %d\n", rsdp->revision);
+    klog_debug("ACPI revision %d", rsdp->revision);
 
     phys_t rsdt_or_xsdt_addr;
     if (rsdp->revision < 2) {
@@ -98,14 +98,14 @@ void acpi_init(phys_t rsdp_addr) {
     }
 
     if (checksum != 0) {
-        kpanic("Invalid %s checksum\n", xsdt_supported ? "XSDP" : "RSDP");
+        kpanic("Invalid %s checksum", xsdt_supported ? "XSDP" : "RSDP");
     }
 
     vmm_map_hhdm(rsdt_or_xsdt_addr);
     rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
 
     if (acpi_calculate_table_checksum(rsdt_or_xsdt) != 0) {
-        kpanic("Invalid XSDT checksum\n");
+        kpanic("Invalid XSDT checksum");
     }
 
     if (xsdt_supported) {
@@ -126,5 +126,5 @@ void acpi_init(phys_t rsdp_addr) {
         vmm_map_hhdm(table_addr);
     }
 
-    kprintf("ACPI initialized\n");
+    klog_info("ACPI initialized");
 }

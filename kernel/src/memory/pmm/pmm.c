@@ -1,5 +1,5 @@
+#include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "kprintf/kprintf.h"
 #include "lib/align.h"
 #include "lib/bitmap/bitmap.h"
 #include "memory/pmm/pmm.h"
@@ -39,7 +39,7 @@ void pmm_init(struct limine_memmap_response *memmap) {
         bitmap.start[i] = 0;
     }
 
-    kprintf("PMM initialized with %dMiB of avl. phys. mem.\n", largest_usable_entry->length >> 20);
+    klog_info("PMM initialized with %dMiB of avl. phys. mem.", largest_usable_entry->length >> 20);
 }
 
 phys_t pmm_alloc(bool zero_contents) {
@@ -49,7 +49,7 @@ phys_t pmm_alloc(bool zero_contents) {
     }
 
     if (page_index == bitmap.bit_count) {
-        kpanic("Out of memory\n");
+        kpanic("Out of memory");
     } else {
         bitmap_set_bit(&bitmap, page_index);
 
@@ -92,7 +92,7 @@ phys_t pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
     }
 
     if (!found_n_pages) {
-        kpanic("Out of memory\n");
+        kpanic("Out of memory");
     } else {
         for (uint64_t i = page_index; i < page_index + n_pages; i++) {
             bitmap_set_bit(&bitmap, i);
@@ -150,12 +150,13 @@ static char *get_entry_type(uint64_t entry_type) {
 }
 
 void pmm_print_memmap(struct limine_memmap_response *memmap) {
+    klog_debug("Physical memory layout:");
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
         phys_t start = entry->base;
         phys_t end = entry->base + entry->length;
         uint64_t length_in_mib = entry->length >> 20;
         char *type = get_entry_type(entry->type);
-        kprintf(" * 0x%016llx - 0x%016llx | %dMiB - %s\n", start, end, length_in_mib, type);
+        klog_debug("%016llx - %016llx %5d MiB %s", start, end, length_in_mib, type);
     }
 }

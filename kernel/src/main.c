@@ -6,8 +6,8 @@
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/idt/idt.h"
+#include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "kprintf/kprintf.h"
 #include "limine.h"
 #include "memory/kheap/kheap.h"
 #include "memory/pmm/pmm.h"
@@ -66,18 +66,18 @@ void kmain(void) {
     struct limine_memmap_response *memmap = memmap_request.response;
     struct limine_rsdp_response *rsdp = rsdp_request.response;
 
-    kprintf_init(fb_request.response->framebuffers[0]);
-    kprintf("Hello, %s!\n", "World");
+    klog_init(fb_request.response->framebuffers[0], LOG_LVL_INFO, LOG_LVL_DEBUG);
 
     gdt_init();
     idt_init();
 
     vmm_set_hhdm_offset(hhdm_offset);
     pmm_init(memmap);
+    pmm_print_memmap(memmap);
     vmm_init(memmap, kaddr);
     kheap_init();
     acpi_init(rsdp->address);
     madt_init();
 
-    kpanic("End of kmain\n");
+    kpanic("End of kmain");
 }

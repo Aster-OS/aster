@@ -1,6 +1,6 @@
 #include "arch/x86_64/asm_wrappers.h"
+#include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "kprintf/kprintf.h"
 #include "lib/align.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
@@ -73,7 +73,7 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_addres
 
     vmm_load_pagemap(kernel_pagemap);
 
-    kprintf("VMM initialized\n");
+    klog_info("VMM initialized");
 }
 
 uintptr_t vmm_get_hhdm_offset(void) {
@@ -145,7 +145,7 @@ void vmm_map_range_contig(phys_t pagemap, uintptr_t virt_start, phys_t phys_star
 
 void vmm_set_hhdm_offset(uintptr_t offset) {
     if (hhdm_offset != 0) {
-        kpanic("HHDM offset set twice\n");
+        kpanic("HHDM offset set twice");
     }
 
     hhdm_offset = offset;

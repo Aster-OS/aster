@@ -2,7 +2,7 @@
 
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/gdt/gdt_selectors.h"
-#include "kprintf/kprintf.h"
+#include "klog/klog.h"
 
 static uint8_t GDT_DESC_TYPE_CODE = 1 << 7 | 1 << 4 | 1 << 3 | 1 << 1 | 1 << 0;
 static uint8_t GDT_DESC_TYPE_DATA = 1 << 7 | 1 << 4 | 1 << 1 | 1 << 0;
@@ -128,5 +128,5 @@ void gdt_init(void) {
 
     __asm__ volatile("ltr %%ax;" : : "a" (GDT_SELECTOR_TSS));
 
-    kprintf("GDT initialized\n");
+    klog_info("GDT initialized");
 }

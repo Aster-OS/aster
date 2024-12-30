@@ -1,7 +1,7 @@
 #include <stddef.h>
 
+#include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "kprintf/kprintf.h"
 #include "lib/align.h"
 #include "memory/kheap/kheap.h"
 #include "memory/pmm/pmm.h"
@@ -103,7 +103,7 @@ static void freelist_add_node(struct free_node_t *node_to_add) {
 
 static void freelist_remove_node(struct free_node_t *node_to_remove) {
     if (node_to_remove == NULL) {
-        kpanic("Kheap attempted to remove NULL node\n");
+        kpanic("Kheap attempted to remove NULL node");
         return;
     }
 
@@ -150,7 +150,7 @@ void *kheap_alloc(size_t sz) {
     }
 
     if (free == NULL) {
-        kpanic("Kheap out of memory\n");
+        kpanic("Kheap out of memory");
         return NULL;
     }
     
@@ -198,7 +198,7 @@ void kheap_free(void *ptr) {
     uintptr_t ptr_addr = (uintptr_t) ptr;
 
     if (!is_in_heap_bounds(ptr_addr)) {
-        kpanic("Kheap tried to free out of bounds address\n");
+        kpanic("Kheap tried to free out of bounds address");
         return;
     }
 
@@ -208,7 +208,7 @@ void kheap_free(void *ptr) {
 
     // double frees are considered a bug
     if (get_flag(to_free, FLAG_IS_FREE)) {
-        kpanic("Kheap tried to free a free chunk!\n");
+        kpanic("Kheap tried to free a free chunk!");
         return;
     }
 
@@ -303,5 +303,5 @@ void kheap_init(void) {
     unset_flag(head, FLAG_IS_PREV_FREE);
     freelist_add_node(head);
 
-    kprintf("Heap initialized with %dMiB of avl. memory\n", HEAP_SIZE >> 20);
+    klog_info("Heap initialized with %dMiB of avl. memory", HEAP_SIZE >> 20);
 }

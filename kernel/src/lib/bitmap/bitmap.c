@@ -1,4 +1,3 @@
-#include "kprintf/kprintf.h"
 #include "lib/bitmap/bitmap.h"
 
 uint8_t bitmap_get_bit(struct bitmap_t *bitmap, uint64_t bitmap_bit) {
