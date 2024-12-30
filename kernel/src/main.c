@@ -5,7 +5,7 @@
 #include "acpi/madt.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
-#include "arch/x86_64/idt/idt.h"
+#include "arch/x86_64/interrupts/interrupts.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "limine.h"
@@ -69,8 +69,7 @@ void kmain(void) {
     klog_init(fb_request.response->framebuffers[0], LOG_LVL_INFO, LOG_LVL_DEBUG);
 
     gdt_init();
-    idt_init();
-
+    interrupts_init();
     vmm_set_hhdm_offset(hhdm_offset);
     pmm_init(memmap);
     pmm_print_memmap(memmap);

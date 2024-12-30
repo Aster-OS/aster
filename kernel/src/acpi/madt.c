@@ -57,6 +57,12 @@ struct __attribute__((packed)) madt_t {
     uint8_t entries[];
 };
 
+// This flag indicates that the system has a PC-AT-compatible
+// dual-8259 setup. The 8259 vectors must be disabled (that is,
+// masked) when enabling the ACPI APIC operation.
+// This flag is essentially ignored and the PIC is disabled anyways
+static const uint32_t MADT_FLAG_PCAT_COMPAT = 1 << 0;
+
 void madt_init(void) {
     struct madt_t *madt = (struct madt_t *) acpi_find_table("APIC");
 
@@ -67,6 +73,8 @@ void madt_init(void) {
     if (acpi_calculate_table_checksum((void *) madt) != 0) {
         kpanic("Invalid MADT checksum");
     }
+
+    klog_debug("Dual 8259 PIC system? %s", madt->flags & MADT_FLAG_PCAT_COMPAT ? "yes" : "no");
 
     klog_debug("MADT entries:");
     uint32_t entries_length = madt->hdr.length - offsetof(struct madt_t, entries);

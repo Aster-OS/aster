@@ -4,8 +4,6 @@
 #include "arch/x86_64/idt/idt.h"
 #include "klog/klog.h"
 
-#define IDT_MAX_DESCRIPTORS 256
-
 static const uint8_t IDT_DESC_ATTR_INTERRUPT_GATE = 0xe;
 static const uint8_t IDT_DESC_ATTR_PRESENT = 0x80;
 static const uint8_t IDT_DESC_ATTR = IDT_DESC_ATTR_PRESENT | IDT_DESC_ATTR_INTERRUPT_GATE;
@@ -27,9 +25,10 @@ struct __attribute__((packed)) idtr_t {
 
 static __attribute__((aligned(8))) struct idt_descriptor_t idt[IDT_MAX_DESCRIPTORS];
 
-extern void *isr_table[];
+extern void *isr_array[];
 
-static void idt_set_descriptor(uint8_t vector, uint64_t addr, uint16_t ist) {
+static void idt_set_descriptor(uint8_t vector, void *isr_addr, uint8_t ist) {
+    uint64_t addr = (uint64_t) isr_addr;
     struct idt_descriptor_t *idt_descriptor = &idt[vector];
 
     idt_descriptor->addr_0_15 = addr & 0xffff;
@@ -47,11 +46,11 @@ void idt_init(void) {
         .limit = sizeof(idt) - 1
     };
 
-    for (size_t vector = 0; vector < IDT_MAX_DESCRIPTORS; vector++) {
-        idt_set_descriptor(vector, (uint64_t) isr_table[vector], 0);
+    for (uint16_t vector = 0; vector < IDT_MAX_DESCRIPTORS; vector++) {
+        idt_set_descriptor(vector, isr_array[vector], 0);
     }
-    
-    __asm__ volatile("lidt %0; sti;" : : "m" (idtr) : "memory");
+
+    __asm__ volatile("lidt %0" : : "m" (idtr) : "memory");
 
     klog_info("IDT initialized");    
 }
