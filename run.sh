@@ -25,6 +25,8 @@ for arg in "$@"; do
             LOG=true ;;
         serial)
             SERIAL=true ;;
+        monitor)
+            MONITOR=true ;;
         gdb)
             GDB=true ;;
         *)
@@ -58,6 +60,10 @@ fi
 
 if [ "$SERIAL" = true ]; then
     QEMU_FLAGS="$QEMU_FLAGS -serial file:qemu-serial.log"
+fi
+
+if [ "$MONITOR" = true ]; then
+    QEMU_FLAGS="$QEMU_FLAGS -monitor stdio"
 fi
 
 if [ "$GDB" = true ]; then
