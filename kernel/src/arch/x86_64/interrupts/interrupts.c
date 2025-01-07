@@ -1,9 +1,11 @@
-#include "arch/x86_64/apic/pic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/idt/idt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
+#include "arch/x86_64/pic/pic.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+
+static const uint8_t PIC_HANDLED_IRQ_COUNT = 8;
 
 static int_handler_t int_handlers[IDT_MAX_DESCRIPTORS];
 
@@ -43,10 +45,9 @@ void interrupts_init(void) {
         int_handlers[exc_vec] = exception_handler;
     }
 
-    // Map the PIC IRQs to their own handler
-    for (uint16_t pic_irq = 0; pic_irq < PIC_IRQ_COUNT; pic_irq++) {
-        int_handlers[pic_irq + PIC1_VECTOR_OFFSET] = pic_irq_handler;
-        int_handlers[pic_irq + PIC2_VECTOR_OFFSET] = pic_irq_handler;
+    for (uint8_t pic_irq = 0; pic_irq < PIC_HANDLED_IRQ_COUNT; pic_irq++) {
+        int_handlers[pic_irq + PIC1_IRQ_BASE] = pic_irq_handler;
+        int_handlers[pic_irq + PIC2_IRQ_BASE] = pic_irq_handler;
     }
 
     // All the other vectors are initially mapped to a handler

@@ -1,8 +1,8 @@
 #include <stdint.h>
 
-#include "arch/x86_64/apic/pic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/interrupts/interrupts.h"
+#include "arch/x86_64/pic/pic.h"
 #include "klog/klog.h"
 
 static const uint16_t PIC1_COMMAND_PORT = 0x20;
@@ -23,8 +23,8 @@ void pic_disable(void) {
     outb(PIC2_COMMAND_PORT, ICW1_INIT | ICW1_ICW4_PRESENT);
 
     // ICW2: Set vector offset (remap IRQ's)
-    outb(PIC1_DATA_PORT, PIC1_VECTOR_OFFSET);
-    outb(PIC2_DATA_PORT, PIC2_VECTOR_OFFSET);
+    outb(PIC1_DATA_PORT, PIC1_IRQ_BASE);
+    outb(PIC2_DATA_PORT, PIC2_IRQ_BASE);
 
     // ICW3: Slave PIC is connected to master PIC via IRQ 2
     outb(PIC1_DATA_PORT, 1 << IRQ_SLAVE_PIC_TO_MASTER_PIC);
