@@ -40,8 +40,11 @@ void interrupts_init(void) {
     idt_init();
     pic_disable();
 
-    // The first 32 interrupt vectors are reserved for CPU exceptions
-    for (uint16_t exc_vec = 0; exc_vec < 32; exc_vec++) {
+    for (uint16_t vec = 0; vec < IDT_MAX_DESCRIPTORS; vec++) {
+        int_handlers[vec] = unknown_int_handler;
+    }
+
+    for (uint8_t exc_vec = 0; exc_vec < 32; exc_vec++) {
         int_handlers[exc_vec] = exception_handler;
     }
 
@@ -50,22 +53,12 @@ void interrupts_init(void) {
         int_handlers[pic_irq + PIC2_IRQ_BASE] = pic_irq_handler;
     }
 
-    // All the other vectors are initially mapped to a handler
-    // which will panic if called; the kernel should define an
-    // interrupt handler and set it in the interrupt handlers array
-    // before that interrupt can be properly handled
-    for (uint16_t vec = FREE_VECTORS_START; vec < IDT_MAX_DESCRIPTORS; vec++) {
-        int_handlers[vec] = unknown_int_handler;
-    }
-
-    enable_interrupts();
-
     klog_info("Interrupts initialized");
 }
 
 uint8_t interrupts_alloc_vector(void) {
     if (last_allocated_vec == IDT_MAX_DESCRIPTORS) {
-        kpanic("All interrupt vectors exhausted");
+        kpanic("All interrupt vectors were exhausted");
     }
 
     uint8_t ret = last_allocated_vec;

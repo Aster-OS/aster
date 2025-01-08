@@ -3,6 +3,7 @@
 
 #include "acpi/acpi.h"
 #include "acpi/madt.h"
+#include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
@@ -76,7 +77,11 @@ void kmain(void) {
     vmm_init(memmap, kaddr);
     kheap_init();
     acpi_init(rsdp->address);
+
+    lapic_init();
     madt_init();
+
+    enable_interrupts();
 
     kpanic("End of kmain");
 }
