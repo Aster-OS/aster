@@ -53,3 +53,7 @@ static inline void enable_interrupts(void) {
 static inline void halt(void) {
     __asm__ volatile("hlt");
 }
+
+static inline void pause(void) {
+    __asm__ volatile("pause");
+}
