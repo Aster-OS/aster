@@ -4,6 +4,7 @@
 
 #define PIC1_IRQ_BASE 0x20
 #define PIC2_IRQ_BASE 0x28
+#define ISA_IRQ_COUNT 16
 
 struct __attribute__((packed)) int_ctx_t {
     uint64_t cr4, cr3, cr2, cr0;
@@ -15,5 +16,7 @@ struct __attribute__((packed)) int_ctx_t {
 
 typedef void (*int_handler_t)(struct int_ctx_t *frame);
 
-void interrupts_set_handler(uint8_t vector, int_handler_t handler);
+uint8_t interrupts_get_isa_irq_vec(uint8_t isa_irq);
 void interrupts_init(void);
+void interrupts_set_handler(uint8_t vec, int_handler_t handler);
+void interrupts_set_isa_irq_handler(uint8_t isa_irq, int_handler_t handler);

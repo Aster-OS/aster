@@ -3,6 +3,7 @@
 
 #include "acpi/acpi.h"
 #include "acpi/madt.h"
+#include "arch/x86_64/apic/ioapic.h"
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
@@ -80,6 +81,7 @@ void kmain(void) {
 
     lapic_init();
     madt_init();
+    ioapic_init();
 
     enable_interrupts();
 

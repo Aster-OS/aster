@@ -2,52 +2,17 @@
 
 #include "acpi/acpi.h"
 #include "acpi/madt.h"
+#include "arch/x86_64/apic/ioapic.h"
+#include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "memory/kheap/kheap.h"
 #include "memory/vmm/vmm.h"
 
 struct __attribute__((packed)) madt_entry_t {
     uint8_t type;
     uint8_t length;
     uint8_t start[];
-};
-
-struct __attribute__((packed)) madt_lapic_t {
-    uint8_t acpi_id;
-    uint8_t lapic_id;
-    uint32_t flags;
-};
-
-struct __attribute__((packed)) madt_ioapic_t {
-    uint8_t ioapic_id;
-    uint8_t reserved;
-    uint32_t address;
-    uint32_t gsi_base;
-};
-
-struct __attribute__((packed)) madt_ioapic_iso_t {
-    uint8_t bus;
-    uint8_t irq;
-    uint32_t gsi;
-    uint16_t flags;
-};
-
-struct __attribute__((packed)) madt_ioapic_nmi_src_t {
-    uint16_t flags;
-    uint32_t gsi;
-};
-
-struct __attribute__((packed)) madt_lapic_nmi_t {
-    uint8_t acpi_id;
-    uint16_t flags;
-    uint8_t lint;
-};
-
-struct __attribute__((packed)) madt_x2lapic_t {
-    uint16_t reserved;
-    uint32_t x2lapic_id;
-    uint32_t flags;
-    uint32_t acpi_id;
 };
 
 struct __attribute__((packed)) madt_t {
@@ -59,22 +24,78 @@ struct __attribute__((packed)) madt_t {
 
 // This flag indicates that the system has a PC-AT-compatible
 // dual-8259 setup. The 8259 vectors must be disabled (that is,
-// masked) when enabling the ACPI APIC operation.
-// This flag is essentially ignored and the PIC is disabled anyways
+// masked) when enabling the APIC.
+// This flag is ignored and the PIC is disabled anyways.
 static const uint32_t MADT_FLAG_PCAT_COMPAT = 1 << 0;
+
+static struct lapic_nmi_t **lapic_nmis;
+static uint16_t lapic_nmis_count;
+
+static struct ioapic_t **ioapics;
+static uint16_t ioapics_count;
+
+static struct ioapic_iso_t **ioapic_isos;
+static uint16_t ioapic_isos_count;
+
+static struct ioapic_nmi_t **ioapic_nmis;
+static uint16_t ioapic_nmis_count;
+
+struct lapic_nmi_t **madt_get_lapic_nmis(void) {
+    return lapic_nmis;
+}
+
+uint16_t madt_get_lapic_nmis_count(void) {
+    return lapic_nmis_count;
+}
+
+struct ioapic_t **madt_get_ioapics(void) {
+    return ioapics;
+}
+
+uint16_t madt_get_ioapics_count(void) {
+    return ioapics_count;
+}
+
+struct ioapic_iso_t **madt_get_ioapic_isos(void) {
+    return ioapic_isos;
+}
+
+uint16_t madt_get_ioapic_isos_count(void) {
+    return ioapic_isos_count;
+}
+
+struct ioapic_nmi_t **madt_get_ioapic_nmis(void) {
+    return ioapic_nmis;
+}
+
+uint16_t madt_get_ioapic_nmis_count(void) {
+    return ioapic_nmis_count;
+}
+
+struct ioapic_t *madt_find_ioapic_by_gsi(uint32_t gsi) {
+    for (uint8_t i = 0; i < ioapics_count; i++) {
+        struct ioapic_t *ioapic = ioapics[i];
+        uint32_t first_gsi = ioapic->gsi_base;
+        uint32_t last_gsi = first_gsi + ioapic_get_max_redir_entry(ioapic->address);
+        if (first_gsi <= gsi && gsi <= last_gsi) {
+            return ioapic;
+        }
+    }
+
+    kpanic("Could not find IOAPIC handling GSI %d", gsi);
+}
+
+struct ioapic_iso_t *madt_find_iso_by_isa_irq(uint8_t isa_irq) {
+    return ioapic_isos[isa_irq];
+}
 
 void madt_init(void) {
     struct madt_t *madt = (struct madt_t *) acpi_find_table("APIC");
 
-    if (madt == NULL) {
-        kpanic("MADT not found");
-    }
+    kassert(madt != NULL);
+    kassert(acpi_calculate_table_checksum(madt) == 0);
 
-    if (acpi_calculate_table_checksum((void *) madt) != 0) {
-        kpanic("Invalid MADT checksum");
-    }
-
-    klog_debug("Dual 8259 PIC system? %s", madt->flags & MADT_FLAG_PCAT_COMPAT ? "yes" : "no");
+    klog_debug("Dual 8259 PIC system: %s", madt->flags & MADT_FLAG_PCAT_COMPAT ? "yes" : "no");
 
     klog_debug("MADT entries:");
     uint32_t entries_length = madt->hdr.length - offsetof(struct madt_t, entries);
@@ -83,37 +104,57 @@ void madt_init(void) {
     while (i < entries_length) {
         struct madt_entry_t *entry = (struct madt_entry_t *) &madt->entries[i];
 
-        switch (entry->type) {
-            case 0: {
-                struct madt_lapic_t *lapic = (struct madt_lapic_t *) &entry->start;
-                klog_debug("LAPIC: acpi_id %d  lapic_id %d  flags %d",
-                    lapic->acpi_id, lapic->lapic_id, lapic->flags);
-            } break;
-            case 1: {
-                struct madt_ioapic_t *ioapic = (struct madt_ioapic_t *) &entry->start;
-                klog_debug("IOAPIC: ioapic_id %d  address %016llx  gsi_base %d",
-                    ioapic->ioapic_id, ioapic->address, ioapic->gsi_base);
-            } break;
-            case 2: {
-                struct madt_ioapic_iso_t *ioapic_iso = (struct madt_ioapic_iso_t *) &entry->start;
-                klog_debug("IOAPIC ISO: bus %d  irq %d  gsi %d  flags %d",
-                    ioapic_iso->bus, ioapic_iso->irq, ioapic_iso->gsi, ioapic_iso->flags);
-            } break;
-            case 3: {
-                struct madt_ioapic_nmi_src_t *ioapic_nmi_src = (struct madt_ioapic_nmi_src_t *) &entry->start;
-                klog_debug("IOAPIC NMI SRC:  flags %d  gsi %d",
-                    ioapic_nmi_src->flags, ioapic_nmi_src->gsi);
-            } break;
-            case 4: {
-                struct madt_lapic_nmi_t *lapic_nmi = (struct madt_lapic_nmi_t *) &entry->start;
-                klog_debug("LAPIC NMI: acpi_id %d  flags %d  lint %d",
-                    lapic_nmi->acpi_id, lapic_nmi->flags, lapic_nmi->lint);
-            } break;
-            case 9: {
-                struct madt_x2lapic_t *x2lapic = (struct madt_x2lapic_t *) &entry->start;
-                klog_debug("X2LAPIC: x2lapic_id %d  flags %d  acpi_id %d",
-                    x2lapic->x2lapic_id, x2lapic->flags, x2lapic->acpi_id);
-            } break;
+        if (entry->type == 1) { // IOAPIC
+            ioapics_count++;
+        } else if (entry->type == 2) { // IOAPIC ISO
+            ioapic_isos_count++;
+        } else if (entry->type == 3) { // IOAPIC NMI
+            ioapic_nmis_count++;
+        } else if (entry->type == 4) { // LAPIC NMI
+            lapic_nmis_count++;
+        }
+
+        i += entry->length;
+    }
+
+    klog_debug("MADT: Found %d IOAPIC %s", ioapics_count, ioapics_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %d IOAPIC ISO %s", ioapic_isos_count, ioapic_isos_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %d IOAPIC NMI %s", ioapic_nmis_count, ioapic_nmis_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %d LAPIC NMI %s", lapic_nmis_count, lapic_nmis_count == 1 ? "entry" : "entries");
+
+    ioapics = kheap_alloc(ioapics_count * sizeof(struct ioapic_t *));
+    ioapic_isos = kheap_alloc(ioapic_isos_count * sizeof(struct ioapic_iso_t *));
+    ioapic_nmis = kheap_alloc(ioapic_nmis_count * sizeof(struct ioapic_nmi_t *));
+    lapic_nmis = kheap_alloc(ioapic_nmis_count * sizeof(struct lapic_nmi_t *));
+
+    uint16_t ioapics_curr_index = 0;
+    uint16_t ioapic_isos_curr_index = 0;
+    uint16_t ioapic_nmis_curr_index = 0;
+    uint16_t lapic_nmis_curr_index = 0;
+
+    i = 0;
+    while (i < entries_length) {
+        struct madt_entry_t *entry = (struct madt_entry_t *) &madt->entries[i];
+
+        if (entry->type == 1) { // IOAPIC
+            struct ioapic_t *ioapic = (struct ioapic_t *) &entry->start;
+            ioapics[ioapics_curr_index++] = ioapic;
+            klog_debug("- IOAPIC: ioapic_id %d  address %x  gsi_base %d", ioapic->id, ioapic->address, ioapic->gsi_base);
+        
+        } else if (entry->type == 2) { // IOAPIC ISO
+            struct ioapic_iso_t *ioapic_iso = (struct ioapic_iso_t *) &entry->start;
+            ioapic_isos[ioapic_isos_curr_index++] = ioapic_iso;
+            klog_debug("- IOAPIC ISO: irq %d  gsi %d  flags %d", ioapic_iso->irq, ioapic_iso->gsi, ioapic_iso->flags);
+
+        } else if (entry->type == 3) { // IOAPIC NMI
+            struct ioapic_nmi_t *ioapic_nmi = (struct ioapic_nmi_t *) &entry->start;
+            ioapic_nmis[ioapic_nmis_curr_index++] = ioapic_nmi;
+            klog_debug("- IOAPIC NMI: flags %d  gsi %d", ioapic_nmi->flags, ioapic_nmi->gsi);
+        
+        } else if (entry->type == 4) { // LAPIC NMI
+            struct lapic_nmi_t *lapic_nmi = (struct lapic_nmi_t *) &entry->start;
+            lapic_nmis[lapic_nmis_curr_index++] = lapic_nmi;
+            klog_debug("- LAPIC NMI: acpi_id %d  flags %d  lint %d", lapic_nmi->acpi_id, lapic_nmi->flags, lapic_nmi->lint);
         }
 
         i += entry->length;
