@@ -1,7 +1,7 @@
 #pragma once
 
+// Maybe provide an option to disable kernel asserts?
 #define kassert(assertion) \
-    kassert_internal(assertion, #assertion, __FILE__, __LINE__, __func__)
+    (assertion) ? (void) 0 : kassert_fail(#assertion, __FILE__, __LINE__, __func__)
 
-void kassert_internal(int assertion, const char *assertion_str,
-                        const char *file, int line, const char *func);
+void kassert_fail(const char *assertion_str, const char *file, int line, const char *func);
