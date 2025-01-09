@@ -1,4 +1,5 @@
 #include "acpi/acpi.h"
+#include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/string.h"
@@ -89,24 +90,20 @@ void acpi_init(phys_t rsdp_addr) {
     }
 
     // Only the last byte of the checksum matters
-    uint8_t checksum = 0;
+    uint8_t rsdp_or_xsdp_checksum = 0;
     uint32_t rsdp_or_xsdp_sz = xsdt_supported ? sizeof(struct xsdp_t) : sizeof(struct rsdp_t);
     for (uint32_t i = 0; i < rsdp_or_xsdp_sz; i++) {
         // RSDP and XSDP point to the same addr, either can be used here
         // the above calculated size is the one that matters
-        checksum += ((uint8_t *) rsdp)[i];
+        rsdp_or_xsdp_checksum += ((uint8_t *) rsdp)[i];
     }
 
-    if (checksum != 0) {
-        kpanic("Invalid %s checksum", xsdt_supported ? "XSDP" : "RSDP");
-    }
+    kassert(rsdp_or_xsdp_checksum == 0);
 
     vmm_map_hhdm(rsdt_or_xsdt_addr);
     rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
 
-    if (acpi_calculate_table_checksum(rsdt_or_xsdt) != 0) {
-        kpanic("Invalid XSDT checksum");
-    }
+    kassert(acpi_calculate_table_checksum(rsdt_or_xsdt) == 0);
 
     if (xsdt_supported) {
         struct xsdt_t *xsdt = (struct xsdt_t *) rsdt_or_xsdt;

@@ -1,5 +1,6 @@
 #include <stddef.h>
 
+#include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
@@ -102,10 +103,7 @@ static void freelist_add_node(struct free_node_t *node_to_add) {
 }
 
 static void freelist_remove_node(struct free_node_t *node_to_remove) {
-    if (node_to_remove == NULL) {
-        kpanic("Kheap attempted to remove NULL node");
-        return;
-    }
+    kassert(node_to_remove != NULL);
 
     if (node_to_remove->prev != NULL) {
         node_to_remove->prev->next = node_to_remove->next;
@@ -197,20 +195,14 @@ void *kheap_alloc(size_t sz) {
 void kheap_free(void *ptr) {
     uintptr_t ptr_addr = (uintptr_t) ptr;
 
-    if (!is_in_heap_bounds(ptr_addr)) {
-        kpanic("Kheap tried to free out of bounds address");
-        return;
-    }
+    kassert(is_in_heap_bounds(ptr_addr));
 
     // the chunk to be freed and its address
     uintptr_t to_free_addr = (uintptr_t) (ptr_addr - sizeof(struct alloc_hdr_t));
     struct free_node_t *to_free = (struct free_node_t *) to_free_addr;
 
     // double frees are considered a bug
-    if (get_flag(to_free, FLAG_IS_FREE)) {
-        kpanic("Kheap tried to free a free chunk!");
-        return;
-    }
+    kassert(get_flag(to_free, FLAG_IS_FREE));
 
     uintptr_t next_addr = to_free_addr + get_sz(to_free);
     size_t *next = (size_t *) next_addr;
