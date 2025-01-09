@@ -8,6 +8,7 @@
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
+#include "arch/x86_64/pit/pit.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "limine.h"
@@ -84,6 +85,8 @@ void kmain(void) {
     ioapic_init();
 
     enable_interrupts();
+
+    pit_init();
 
     kpanic("End of kmain");
 }
