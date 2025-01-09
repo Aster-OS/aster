@@ -4,3 +4,7 @@
 
 void lapic_init(void);
 void lapic_send_eoi(void);
+void lapic_timer_calibrate(void);
+void lapic_timer_one_shot(uint64_t ns, uint8_t vec);
+void lapic_timer_periodic(uint64_t ns, uint8_t vec);
+void lapic_timer_stop(void);

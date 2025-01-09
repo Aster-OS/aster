@@ -1,6 +1,7 @@
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/interrupts/interrupts.h"
+#include "arch/x86_64/pit/pit.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "memory/vmm/vmm.h"
@@ -93,14 +94,42 @@ void lapic_init(void) {
     vmm_map_hhdm(lapic_addr);
 
     interrupts_set_handler(LAPIC_SPURIOUS_VEC, lapic_spurious_handler);
-    // lapic_timer_stop();
+    lapic_timer_stop();
     lapic_wr(lapic_addr, REG_SPURIOUS, (1 << 8) | LAPIC_SPURIOUS_VEC);
     lapic_wr(lapic_addr, REG_TIMER_DIV, 0x3); // divisor 16
 
-klog_debug("LAPIC initialized");
+    klog_debug("LAPIC initialized");
 }
 
 void lapic_send_eoi(void) {
     lapic_wr(lapic_addr, REG_EOI, 0);
 }
 
+void lapic_timer_calibrate(void) {
+    uint32_t calibration_start_ticks = UINT32_MAX;
+    lapic_wr(lapic_addr, REG_TIMER_INIT_COUNT, calibration_start_ticks);
+    pit_sleep_ns(lapic_calibration_sleep_ns);
+    uint32_t calibration_end_ticks = lapic_rd(lapic_addr, REG_TIMER_CURR_COUNT);
+
+    lapic_timer_stop();
+
+    lapic_calibration_ticks = calibration_start_ticks - calibration_end_ticks;
+
+    klog_debug("LAPIC: 0x%08x ticks in %d ns", lapic_calibration_ticks, lapic_calibration_sleep_ns);
+}
+
+void lapic_timer_one_shot(uint64_t ns, uint8_t vec) {
+    uint32_t ticks = ns_to_lapic_ticks(ns);
+    lapic_wr(lapic_addr, REG_TIMER_INIT_COUNT, ticks);
+    lapic_wr(lapic_addr, REG_LVT_TIMER, LVT_TIMER_ONE_SHOT | vec);
+}
+
+void lapic_timer_periodic(uint64_t ns, uint8_t vec) {
+    uint32_t ticks = ns_to_lapic_ticks(ns);
+    lapic_wr(lapic_addr, REG_TIMER_INIT_COUNT, ticks);
+    lapic_wr(lapic_addr, REG_LVT_TIMER, LVT_TIMER_PERIODIC | vec);
+}
+
+void lapic_timer_stop(void) {
+    lapic_wr(lapic_addr, REG_TIMER_INIT_COUNT, 0);
+}

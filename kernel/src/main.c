@@ -88,5 +88,7 @@ void kmain(void) {
 
     pit_init();
 
+    lapic_timer_calibrate();
+
     kpanic("End of kmain");
 }
