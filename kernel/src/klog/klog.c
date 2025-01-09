@@ -7,11 +7,11 @@
 #include "kpanic/kpanic.h"
 #include "serial/serial.h"
 
-#define LOG_CRITICAL_CLR "\033[95m"
-#define LOG_ERROR_CLR    "\033[91m"
-#define LOG_WARN_CLR     "\033[93m"
-#define LOG_INFO_CLR     "\033[92m"
-#define LOG_DEBUG_CLR    "\033[36m"
+#define LOG_FATAL_CLR "\033[31m"
+#define LOG_ERROR_CLR "\033[91m"
+#define LOG_WARN_CLR  "\033[93m"
+#define LOG_INFO_CLR  "\033[92m"
+#define LOG_DEBUG_CLR "\033[36m"
 #define LOG_RESET_CLR "\033[37m"
 
 static struct flanterm_context *ft_ctx;
@@ -62,8 +62,8 @@ void klog_init(struct limine_framebuffer *fb, enum klog_lvl fb_log_lvl, enum klo
 
 static const char *get_lvl_prefix(enum klog_lvl lvl) {
     switch (lvl) {
-        case LOG_LVL_CRITICAL:
-            return LOG_RESET_CLR "[" LOG_CRITICAL_CLR "CRITICAL" LOG_RESET_CLR "] ";
+        case LOG_LVL_FATAL:
+            return LOG_RESET_CLR "[" LOG_FATAL_CLR "FATAL" LOG_RESET_CLR "] ";
         case LOG_LVL_ERROR:
             return LOG_RESET_CLR "[" LOG_ERROR_CLR "ERROR" LOG_RESET_CLR "] ";
         case LOG_LVL_WARN:
@@ -94,10 +94,10 @@ static int kvlog(enum klog_lvl lvl, const char *fmt, va_list va) {
     return ret;    
 }
 
-int klog_critical(const char *fmt, ...) {
+int klog_fatal(const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    const int ret = kvlog(LOG_LVL_CRITICAL, fmt, va);
+    const int ret = kvlog(LOG_LVL_FATAL, fmt, va);
     va_end(va);
     return ret;
 }
