@@ -98,7 +98,7 @@ void lapic_init(void) {
     lapic_wr(lapic_addr, REG_SPURIOUS, (1 << 8) | LAPIC_SPURIOUS_VEC);
     lapic_wr(lapic_addr, REG_TIMER_DIV, 0x3); // divisor 16
 
-    klog_debug("LAPIC initialized");
+    klog_info("LAPIC initialized");
 }
 
 void lapic_send_eoi(void) {
@@ -115,7 +115,7 @@ void lapic_timer_calibrate(void) {
 
     lapic_calibration_ticks = calibration_start_ticks - calibration_end_ticks;
 
-    klog_debug("LAPIC: 0x%08x ticks in %d ns", lapic_calibration_ticks, lapic_calibration_sleep_ns);
+    klog_info("LAPIC timer calibrated: %llu ticks in %llu ns", lapic_calibration_ticks, lapic_calibration_sleep_ns);
 }
 
 void lapic_timer_one_shot(uint64_t ns, uint8_t vec) {

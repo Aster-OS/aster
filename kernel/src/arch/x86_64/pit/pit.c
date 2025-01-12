@@ -47,7 +47,7 @@ void pit_init(void) {
     interrupts_set_isa_irq_handler(PIT_ISA_IRQ, pit_int_handler);
     ioapic_unmask_isa_irq(PIT_ISA_IRQ);
 
-    klog_debug("PIT initialized");
+    klog_info("PIT initialized");
 }
 
 void pit_sleep_ns(uint64_t ns) {
