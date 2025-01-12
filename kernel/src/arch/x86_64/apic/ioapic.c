@@ -6,6 +6,7 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "memory/vmm/vmm.h"
+#include "mp/mp.h"
 
 static const uint32_t IOREGSEL = 0x0;
 static const uint32_t IOWIN = 0x10;
@@ -55,7 +56,7 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
     kassert(isa_irq < ISA_IRQ_COUNT);
 
     // TODO: GSI/IRQ balancing...
-    uint8_t cpu_handling_irq_id = 0; // TODO: actually get the BSP LAPIC ID
+    uint8_t cpu_handling_irq_lapic_id = mp_get_bsp()->lapic_id;
     uint8_t isa_irq_vec = interrupts_get_isa_irq_vec(isa_irq);
     struct ioapic_iso_t *ioapic_iso = madt_find_iso_by_isa_irq(isa_irq);
 
@@ -70,7 +71,7 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
         redtbl_val |= IOAPIC_DEST_PHYS;
         redtbl_val |= IOAPIC_ACTIVE_HIGH;
         redtbl_val |= IOAPIC_TRIG_EDGE;
-        redtbl_val |= ioapic_dest(cpu_handling_irq_id);
+        redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
 
         ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
     } else {
@@ -96,7 +97,7 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
             redtbl_val |= IOAPIC_TRIG_LEVEL;
         }
 
-        redtbl_val |= ioapic_dest(cpu_handling_irq_id);
+        redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
         
         ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
     }
