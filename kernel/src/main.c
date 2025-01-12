@@ -8,6 +8,7 @@
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/gdt/gdt.h"
+#include "arch/x86_64/idt/idt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "arch/x86_64/pit/pit.h"
 #include "klog/klog.h"
@@ -16,6 +17,7 @@
 #include "memory/kheap/kheap.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
+#include "mp/mp.h"
 #include "timer/timer.h"
 
 __attribute__((used, section(".limine_requests")))
@@ -51,6 +53,12 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_mp_request mp_request = {
+    .id = LIMINE_MP_REQUEST,
+    .revision = 0
+};
+
 __attribute__((used, section(".limine_requests_start")))
 static volatile LIMINE_REQUESTS_START_MARKER
 
@@ -70,10 +78,17 @@ void kmain(void) {
     struct limine_kernel_address_response *kaddr = kaddr_request.response;
     struct limine_memmap_response *memmap = memmap_request.response;
     struct limine_rsdp_response *rsdp = rsdp_request.response;
+    struct limine_mp_response *mp = mp_request.response;
 
     klog_init(fb_request.response->framebuffers[0], LOG_LVL_INFO, LOG_LVL_DEBUG);
 
+    mp_init_bsp(mp);
+
     gdt_init();
+    gdt_reload_segments();
+    gdt_reload_tss();
+    idt_init();
+    idt_reload();
     interrupts_init();
     vmm_set_hhdm_offset(hhdm_offset);
     pmm_init(memmap);
@@ -85,12 +100,13 @@ void kmain(void) {
     lapic_init();
     madt_init();
     ioapic_init();
-
-    enable_interrupts();
+    cpu_set_int_state(true);
 
     timer_init();
 
-    lapic_timer_calibrate();
+    lapic_timer_calibrate(1000000);
+
+    mp_init_aps(mp);
 
     kpanic("End of kmain");
 }

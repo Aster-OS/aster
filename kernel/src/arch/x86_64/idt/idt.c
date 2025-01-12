@@ -24,6 +24,7 @@ struct __attribute__((packed)) idtr_t {
 };
 
 static __attribute__((aligned(8))) struct idt_descriptor_t idt[IDT_MAX_DESCRIPTORS];
+static struct idtr_t idtr;
 
 extern void *isr_array[];
 
@@ -41,16 +42,16 @@ static void idt_set_descriptor(uint8_t vector, void *isr_addr, uint8_t ist) {
 }
 
 void idt_init(void) {
-    struct idtr_t idtr = {
-        .base = (uint64_t) &idt,
-        .limit = sizeof(idt) - 1
-    };
+    idtr.base = (uint64_t) &idt;
+    idtr.limit = sizeof(idt) - 1;
 
     for (uint16_t vector = 0; vector < IDT_MAX_DESCRIPTORS; vector++) {
         idt_set_descriptor(vector, isr_array[vector], 0);
     }
 
-    __asm__ volatile("lidt %0" : : "m" (idtr) : "memory");
-
     klog_info("IDT initialized");    
+}
+
+void idt_reload(void) {
+    __asm__ volatile("lidt %0" : : "m" (idtr) : "memory");
 }

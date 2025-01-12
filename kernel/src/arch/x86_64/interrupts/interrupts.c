@@ -36,7 +36,6 @@ uint8_t interrupts_get_isa_irq_vec(uint8_t isa_irq) {
 }
 
 void interrupts_init(void) {
-    idt_init();
     pic_disable();
 
     for (uint16_t vec = 0; vec < IDT_MAX_DESCRIPTORS; vec++) {

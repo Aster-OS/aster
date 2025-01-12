@@ -3,8 +3,10 @@
 #include "lib/flanterm/flanterm.h"
 #include "lib/flanterm/backends/fb.h"
 #include "lib/printf/printf.h"
+#include "lib/spinlock/spinlock.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "mp/cpu.h"
 #include "serial/serial.h"
 
 #define LOG_FATAL_CLR "\033[31m"
@@ -78,6 +80,10 @@ static const char *get_lvl_prefix(enum klog_lvl lvl) {
 }
 
 static int kvlog(enum klog_lvl lvl, const char *fmt, va_list va) {
+    static struct spinlock_t klog_lock;
+    bool prev_int_state = cpu_set_int_state(false);
+    spinlock_acquire(&klog_lock);
+
     curr_print_lvl = lvl;
 
     printf_(get_lvl_prefix(lvl));
@@ -91,7 +97,9 @@ static int kvlog(enum klog_lvl lvl, const char *fmt, va_list va) {
         ft_ctx->double_buffer_flush(ft_ctx);
     }
 
-    return ret;    
+    spinlock_release(&klog_lock);
+    cpu_set_int_state(prev_int_state);
+    return ret;
 }
 
 int klog_fatal(const char *fmt, ...) {
