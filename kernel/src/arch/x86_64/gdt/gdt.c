@@ -6,9 +6,9 @@
 #include "lib/spinlock/spinlock.h"
 #include "mp/cpu.h"
 
-static uint8_t GDT_DESC_TYPE_CODE = 1 << 7 | 1 << 4 | 1 << 3 | 1 << 1 | 1 << 0;
-static uint8_t GDT_DESC_TYPE_DATA = 1 << 7 | 1 << 4 | 1 << 1 | 1 << 0;
-static uint8_t GDT_DESC_TYPE_TSS_AVL = 1 << 7 | 1 << 3 | 1 << 0;
+static const uint8_t GDT_DESC_TYPE_CODE = 1 << 7 | 1 << 4 | 1 << 3 | 1 << 1 | 1 << 0;
+static const uint8_t GDT_DESC_TYPE_DATA = 1 << 7 | 1 << 4 | 1 << 1 | 1 << 0;
+static const uint8_t GDT_DESC_TYPE_TSS_AVL = 1 << 7 | 1 << 3 | 1 << 0;
 
 static inline uint8_t gdt_desc_type_dpl(uint8_t dpl) {
     return dpl << 5;
