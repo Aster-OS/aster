@@ -1,6 +1,7 @@
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/interrupts/interrupts.h"
+#include "arch/x86_64/msr.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "memory/vmm/vmm.h"
@@ -66,8 +67,6 @@ static void lapic_spurious_handler(struct int_ctx_t *ctx) {
     klog_debug("LAPIC spurious interrupt");
 }
 
-static const uint32_t IA32_APIC_BASE_MSR = 0x1b;
-
 // TODO properly allocate a vector with upper 4 bits set (for compatibility)
 static const uint8_t LAPIC_SPURIOUS_VEC = 0xf0;
 
@@ -90,7 +89,7 @@ void lapic_init(void) {
         kpanic("LAPIC not present");
     }
 
-    lapic_addr = rdmsr(IA32_APIC_BASE_MSR) & 0xffffff000;
+    lapic_addr = rdmsr(MSR_IA32_APIC_BASE) & 0xffffff000;
     vmm_map_hhdm(lapic_addr);
 
     interrupts_set_handler(LAPIC_SPURIOUS_VEC, lapic_spurious_handler);
