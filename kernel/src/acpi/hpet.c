@@ -40,16 +40,12 @@ struct __attribute__((packed)) hpet_t {
 
 static struct hpet_t *hpet;
 static uint64_t hpet_freq;
-static bool hpet_supported;
 
 void hpet_init(void) {
     struct hpet_table_t *hpet_table = (struct hpet_table_t *) acpi_find_table("HPET");
     if (hpet_table == NULL) {
-        hpet_supported = false;
         klog_debug("HPET not supported");
         return;
-    } else {
-        hpet_supported = true;
     }
 
     vmm_map_hhdm(hpet_table->address);
@@ -91,5 +87,5 @@ void hpet_sleep_ns(uint64_t ns) {
 }
 
 bool hpet_is_supported(void) {
-    return hpet_supported;
+    return acpi_find_table("HPET") != NULL;
 }

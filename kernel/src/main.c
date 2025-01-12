@@ -16,6 +16,7 @@
 #include "memory/kheap/kheap.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
+#include "timer/timer.h"
 
 __attribute__((used, section(".limine_requests")))
 static volatile LIMINE_BASE_REVISION(3)
@@ -87,8 +88,7 @@ void kmain(void) {
 
     enable_interrupts();
 
-    pit_init();
-    hpet_init();
+    timer_init();
 
     lapic_timer_calibrate();
 

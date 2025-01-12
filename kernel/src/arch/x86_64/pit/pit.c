@@ -16,22 +16,10 @@ static const uint8_t PIT_ISA_IRQ = 0;
 
 static uint64_t ticks;
 
-static inline uint64_t ns_to_ticks(uint64_t ns) {
-    return ns * PIT_DESIRED_FREQ / 1000000;
-}
-
-static inline uint64_t ticks_to_ns(uint64_t ticks) {
-    return 1000000 * ticks / PIT_DESIRED_FREQ;
-}
-
 static void pit_int_handler(struct int_ctx_t *ctx) {
     (void) ctx;
     ticks++;
     lapic_send_eoi();
-}
-
-uint64_t pit_get_ns(void) {
-    return ticks_to_ns(ticks);
 }
 
 void pit_init(void) {
@@ -50,10 +38,21 @@ void pit_init(void) {
     klog_info("PIT initialized");
 }
 
+static inline uint64_t ns_to_ticks(uint64_t ns) {
+    return ns * PIT_DESIRED_FREQ / 1000000;
+}
+
+static inline uint64_t ticks_to_ns(uint64_t ticks) {
+    return 1000000 * ticks / PIT_DESIRED_FREQ;
+}
+
+uint64_t pit_get_ns(void) {
+    return ticks_to_ns(ticks);
+}
+
 void pit_sleep_ns(uint64_t ns) {
     uint64_t ticks_to_sleep = ns_to_ticks(ns);
-    uint64_t ticks_start = ticks;
-    uint64_t ticks_end = ticks_start + ticks_to_sleep;
+    uint64_t ticks_end = ticks + ticks_to_sleep;
     while (ticks < ticks_end) {
         pause();
     }

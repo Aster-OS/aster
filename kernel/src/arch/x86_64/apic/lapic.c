@@ -1,10 +1,10 @@
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/interrupts/interrupts.h"
-#include "arch/x86_64/pit/pit.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "memory/vmm/vmm.h"
+#include "timer/timer.h"
 
 enum lapic_regs {
     REG_LAPIC_ID = 0x20,
@@ -108,7 +108,7 @@ void lapic_send_eoi(void) {
 void lapic_timer_calibrate(void) {
     uint32_t calibration_start_ticks = UINT32_MAX;
     lapic_wr(lapic_addr, REG_TIMER_INIT_COUNT, calibration_start_ticks);
-    pit_sleep_ns(lapic_calibration_sleep_ns);
+    timer_sleep_ns(lapic_calibration_sleep_ns);
     uint32_t calibration_end_ticks = lapic_rd(lapic_addr, REG_TIMER_CURR_COUNT);
 
     lapic_timer_stop();
