@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <stddef.h>
 
 void *kheap_alloc(size_t sz);
 void kheap_free(void *ptr);
