@@ -48,7 +48,7 @@ void ioapic_init(void) {
         uint32_t first_gsi = ioapic->gsi_base;
         uint32_t last_gsi = first_gsi + ioapic_get_max_redir_entry(ioapic->address);
 
-        klog_info("IOAPIC id %d initialized (addr 0x%x GSIs %d-%d)", ioapic->id, ioapic->address, first_gsi, last_gsi);
+        klog_info("IOAPIC id %d initialized (GSIs %d-%d)", ioapic->id, first_gsi, last_gsi);
     }
 }
 

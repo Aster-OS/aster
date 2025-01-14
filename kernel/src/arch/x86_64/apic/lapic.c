@@ -90,7 +90,7 @@ void lapic_init(void) {
     lapic_wr(REG_SPURIOUS, (1 << 8) | LAPIC_SPURIOUS_VEC);
     lapic_wr(REG_TIMER_DIV, 0x3); // divisor 16
 
-    klog_info("CPU %u LAPIC initialized", get_cpu()->id);
+    klog_info("CPU #%u LAPIC initialized", get_cpu()->id);
 }
 
 void lapic_send_eoi(void) {
@@ -110,7 +110,7 @@ void lapic_timer_calibrate(uint64_t calibration_sleep_ns) {
     get_cpu()->lapic_calibration_sleep_ns = calibration_sleep_ns;
     get_cpu()->lapic_calibration_ticks = calibration_ticks;
 
-    klog_info("CPU %u LAPIC timer calibrated: %llu ticks in %llu ns", get_cpu()->id, calibration_ticks, calibration_sleep_ns);
+    klog_info("CPU #%u LAPIC timer calibrated: %llu ticks in %llu ns", get_cpu()->id, calibration_ticks, calibration_sleep_ns);
 }
 
 void lapic_timer_one_shot(uint64_t ns, uint8_t vec) {
