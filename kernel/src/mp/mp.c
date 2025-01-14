@@ -9,12 +9,12 @@
 #include "mp/cpu.h"
 #include "mp/mp.h"
 
-static struct cpu_t bsp_cpu;
+static struct cpu_t bsp;
 static struct cpu_t **cpus;
 static uint64_t initialized_ap_count;
 
 struct cpu_t *mp_get_bsp(void) {
-    return &bsp_cpu;
+    return &bsp;
 }
 
 void mp_init_bsp(struct limine_mp_response *mp) {
@@ -23,13 +23,13 @@ void mp_init_bsp(struct limine_mp_response *mp) {
         bool is_bsp = limine_cpu_info->lapic_id == mp->bsp_lapic_id;
 
         if (is_bsp) {
-            bsp_cpu.id = i;
-            bsp_cpu.lapic_id = limine_cpu_info->lapic_id;
-            bsp_cpu.acpi_id = limine_cpu_info->processor_id;
-            bsp_cpu.interrupts_enabled = false;
+            bsp.id = i;
+            bsp.lapic_id = limine_cpu_info->lapic_id;
+            bsp.acpi_id = limine_cpu_info->processor_id;
+            bsp.interrupts_enabled = false;
         }
 
-        set_cpu(&bsp_cpu);
+        set_cpu(&bsp);
         return;
     }
 
@@ -74,7 +74,7 @@ void mp_init_aps(struct limine_mp_response *mp) {
 
         struct cpu_t *cpu;
         if (is_bsp) {
-            cpu = &bsp_cpu;
+            cpu = &bsp;
         } else {
             cpu = (struct cpu_t *) kheap_alloc(sizeof(struct cpu_t));
         }
