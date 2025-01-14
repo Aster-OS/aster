@@ -13,6 +13,13 @@ static struct cpu_t bsp;
 static struct cpu_t **cpus;
 static uint64_t initialized_ap_count;
 
+static inline void init_cpu_data(struct cpu_t *cpu, uint64_t id, struct limine_mp_info *limine_cpu_info) {
+    cpu->id = id;
+    cpu->lapic_id = limine_cpu_info->lapic_id;
+    cpu->acpi_id = limine_cpu_info->processor_id;
+    cpu->interrupts_enabled = false;
+}
+
 struct cpu_t *mp_get_bsp(void) {
     return &bsp;
 }
@@ -23,14 +30,10 @@ void mp_init_bsp(struct limine_mp_response *mp) {
         bool is_bsp = limine_cpu_info->lapic_id == mp->bsp_lapic_id;
 
         if (is_bsp) {
-            bsp.id = i;
-            bsp.lapic_id = limine_cpu_info->lapic_id;
-            bsp.acpi_id = limine_cpu_info->processor_id;
-            bsp.interrupts_enabled = false;
+            init_cpu_data(&bsp, i, limine_cpu_info);
+            set_cpu(&bsp);
+            return;
         }
-
-        set_cpu(&bsp);
-        return;
     }
 
     kpanic("Could not find BSP");
@@ -49,7 +52,7 @@ static void ap_init(struct limine_mp_info *cpu_info) {
     lapic_timer_calibrate(1000000);
     cpu_set_int_state(true);
 
-    klog_info("CPU %u initialized", cpu->id, cpu->lapic_id, cpu->acpi_id);
+    klog_info("CPU #%u initialized", cpu->id);
 
     __atomic_fetch_add(&initialized_ap_count, 1, __ATOMIC_SEQ_CST);
 
@@ -75,14 +78,12 @@ void mp_init_aps(struct limine_mp_response *mp) {
         struct cpu_t *cpu;
         if (is_bsp) {
             cpu = &bsp;
+            // bsp data was already initialized
         } else {
             cpu = (struct cpu_t *) kheap_alloc(sizeof(struct cpu_t));
+            init_cpu_data(cpu, i, limine_cpu_info);
         }
 
-        cpu->id = i;
-        cpu->lapic_id = limine_cpu_info->lapic_id;
-        cpu->acpi_id = limine_cpu_info->processor_id;
-        cpu->interrupts_enabled = false;
         cpus[i] = cpu;
 
         if (is_bsp) {
