@@ -25,45 +25,45 @@ enum lapic_regs {
 };
 
 enum lapic_lvt_deliv_mode {
-    LVT_DELIV_MODE_FIXED  = 0x000 << 8,
-    LVT_DELIV_MODE_SMI    = 0x010 << 8,
-    LVT_DELIV_MODE_NMI    = 0x100 << 8,
-    LVT_DELIV_MODE_INIT   = 0x101 << 8,
-    LVT_DELIV_MODE_EXTINT = 0x110 << 8
+    LVT_DELIV_MODE_FIXED  = 0x0,
+    LVT_DELIV_MODE_SMI    = 0x200,
+    LVT_DELIV_MODE_NMI    = 0x400,
+    LVT_DELIV_MODE_INIT   = 0x500,
+    LVT_DELIV_MODE_EXTINT = 0x700
 };
 
 enum lapic_lvt_deliv_status {
-    LVT_DELIV_STATUS_IDLE    = 0 << 12,
-    LVT_DELIV_STATUS_PENDING = 1 << 12
+    LVT_DELIV_STATUS_IDLE    = 0x0,
+    LVT_DELIV_STATUS_PENDING = 0x1000
 };
 
 enum lapic_lvt_pin_polarity {
-    LVT_ACTIVE_HIGH = 0 << 13,
-    LVT_ACTIVE_LOW  = 1 << 13
+    LVT_ACTIVE_HIGH = 0x0,
+    LVT_ACTIVE_LOW  = 0x2000
 };
 
 enum lapic_lvt_trig_mode {
-    LVT_TRIG_EDGE  = 0 << 15,
-    LVT_TRIG_LEVEL = 1 << 15
+    LVT_TRIG_EDGE  = 0x0,
+    LVT_TRIG_LEVEL = 0x8000
+};
+
+static const uint32_t LVT_MASKED = 0x10000;
+
+enum lapic_lvt_timer_mode {
+    LVT_TIMER_ONE_SHOT     = 0x0,
+    LVT_TIMER_PERIODIC     = 0x20000,
+    LVT_TIMER_TSC_DEADLINE = 0x40000
 };
 
 enum lapic_icr_dest_mode {
-    ICR_DEST_MODE_PHYSICAL = 0x0 << 11,
-    ICR_DEST_MODE_LOGICAL  = 0x1 << 11
+    ICR_DEST_MODE_PHYSICAL = 0x0,
+    ICR_DEST_MODE_LOGICAL  = 0x800
 };
 
 enum lapic_icr_shorthand {
-    ICR_SHORTHAND_SELF        = 0x1 << 18,
-    ICR_SHORTHAND_ALL         = 0x2 << 18,
-    ICR_SHORTHAND_ALL_NO_SELF = 0x3 << 18
-};
-
-static const uint32_t LVT_MASKED = 1 << 16;
-
-enum lapic_lvt_timer_mode {
-    LVT_TIMER_ONE_SHOT     = 0x0 << 17,
-    LVT_TIMER_PERIODIC     = 0x1 << 17,
-    LVT_TIMER_TSC_DEADLINE = 0x2 << 17
+    ICR_SHORTHAND_SELF        = 0x40000,
+    ICR_SHORTHAND_ALL         = 0x80000,
+    ICR_SHORTHAND_ALL_NO_SELF = 0xc0000
 };
 
 static uint32_t lapic_rd(uint16_t reg) {
@@ -79,7 +79,7 @@ static void lapic_spurious_handler(struct int_ctx_t *ctx) {
     klog_debug("LAPIC spurious interrupt");
 }
 
-// TODO properly allocate a vector with upper 4 bits set (for compatibility)
+// IDT vectors >= 0xf0 are reserved, so this vector can be used safely
 static const uint8_t LAPIC_SPURIOUS_VEC = 0xf0;
 
 static inline uint32_t ns_to_lapic_ticks(uint64_t ns) {
