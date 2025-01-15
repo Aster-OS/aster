@@ -56,7 +56,7 @@ void hpet_init(void) {
     uint64_t hpet_period = hpet->general_capabilities >> 32;
 
     hpet_freq = 1000000000000000 / hpet_period;
-    klog_debug("HPET comparators count: %u", hpet_comparators_count);
+    klog_debug("HPET comparators count: %llu", hpet_comparators_count);
     klog_debug("HPET 64-bit compatible: %s", hpet_64_bit_compatible ? "yes" : "no");
     klog_debug("HPET frequency: %llu Hz", hpet_freq);
 

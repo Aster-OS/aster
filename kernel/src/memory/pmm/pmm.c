@@ -39,7 +39,7 @@ void pmm_init(struct limine_memmap_response *memmap) {
         bitmap.start[i] = 0;
     }
 
-    klog_info("PMM initialized with %dMiB of avl. phys. mem.", largest_usable_entry->length >> 20);
+    klog_info("PMM initialized with %lluMiB of avl. phys. mem.", largest_usable_entry->length >> 20);
 }
 
 phys_t pmm_alloc(bool zero_contents) {
@@ -157,6 +157,6 @@ void pmm_print_memmap(struct limine_memmap_response *memmap) {
         phys_t end = entry->base + entry->length;
         uint64_t length_in_mib = entry->length >> 20;
         char *type = get_entry_type(entry->type);
-        klog_debug("%016llx - %016llx %5d MiB %s", start, end, length_in_mib, type);
+        klog_debug("%016llx - %016llx %5llu MiB %s", start, end, length_in_mib, type);
     }
 }

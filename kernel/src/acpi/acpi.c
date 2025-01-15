@@ -77,7 +77,7 @@ void acpi_init(phys_t rsdp_addr) {
     struct rsdp_t *rsdp = (struct rsdp_t *) (rsdp_addr + vmm_get_hhdm_offset());
     struct xsdp_t *xsdp = (struct xsdp_t *) rsdp;
 
-    klog_debug("ACPI revision %d", rsdp->revision);
+    klog_debug("ACPI revision %llu", rsdp->revision);
 
     phys_t rsdt_or_xsdt_addr;
     if (rsdp->revision < 2) {

@@ -33,7 +33,7 @@ static void do_stacktrace(void) {
         uint64_t prev_rbp = *(uint64_t *) rbp;
         uint64_t ret_addr = *((uint64_t *) rbp + 1);
 
-        klog_fatal("%d %016llx", i, ret_addr);
+        klog_fatal("%llu %016llx", i, ret_addr);
 
         rbp = prev_rbp;
         i++;

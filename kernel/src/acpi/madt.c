@@ -82,7 +82,7 @@ struct ioapic_t *madt_find_ioapic_by_gsi(uint32_t gsi) {
         }
     }
 
-    kpanic("Could not find IOAPIC handling GSI %d", gsi);
+    kpanic("Could not find IOAPIC handling GSI %llu", gsi);
 }
 
 struct ioapic_iso_t *madt_find_iso_by_isa_irq(uint8_t isa_irq) {
@@ -117,10 +117,10 @@ void madt_init(void) {
         i += entry->length;
     }
 
-    klog_debug("MADT: Found %d IOAPIC %s", ioapics_count, ioapics_count == 1 ? "entry" : "entries");
-    klog_debug("MADT: Found %d IOAPIC ISO %s", ioapic_isos_count, ioapic_isos_count == 1 ? "entry" : "entries");
-    klog_debug("MADT: Found %d IOAPIC NMI %s", ioapic_nmis_count, ioapic_nmis_count == 1 ? "entry" : "entries");
-    klog_debug("MADT: Found %d LAPIC NMI %s", lapic_nmis_count, lapic_nmis_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu IOAPIC %s", ioapics_count, ioapics_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu IOAPIC ISO %s", ioapic_isos_count, ioapic_isos_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu IOAPIC NMI %s", ioapic_nmis_count, ioapic_nmis_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu LAPIC NMI %s", lapic_nmis_count, lapic_nmis_count == 1 ? "entry" : "entries");
 
     ioapics = kheap_alloc(ioapics_count * sizeof(struct ioapic_t *));
     ioapic_isos = kheap_alloc(ioapic_isos_count * sizeof(struct ioapic_iso_t *));
@@ -139,22 +139,22 @@ void madt_init(void) {
         if (entry->type == 1) { // IOAPIC
             struct ioapic_t *ioapic = (struct ioapic_t *) &entry->start;
             ioapics[ioapics_curr_index++] = ioapic;
-            klog_debug("- IOAPIC: ioapic_id %d  address %x  gsi_base %d", ioapic->id, ioapic->address, ioapic->gsi_base);
+            klog_debug("- IOAPIC: ioapic_id %llu  address %llx  gsi_base %llu", ioapic->id, ioapic->address, ioapic->gsi_base);
         
         } else if (entry->type == 2) { // IOAPIC ISO
             struct ioapic_iso_t *ioapic_iso = (struct ioapic_iso_t *) &entry->start;
             ioapic_isos[ioapic_isos_curr_index++] = ioapic_iso;
-            klog_debug("- IOAPIC ISO: irq %d  gsi %d  flags %d", ioapic_iso->irq, ioapic_iso->gsi, ioapic_iso->flags);
+            klog_debug("- IOAPIC ISO: irq %llu  gsi %llu  flags %llu", ioapic_iso->irq, ioapic_iso->gsi, ioapic_iso->flags);
 
         } else if (entry->type == 3) { // IOAPIC NMI
             struct ioapic_nmi_t *ioapic_nmi = (struct ioapic_nmi_t *) &entry->start;
             ioapic_nmis[ioapic_nmis_curr_index++] = ioapic_nmi;
-            klog_debug("- IOAPIC NMI: flags %d  gsi %d", ioapic_nmi->flags, ioapic_nmi->gsi);
+            klog_debug("- IOAPIC NMI: flags %llu  gsi %llu", ioapic_nmi->flags, ioapic_nmi->gsi);
         
         } else if (entry->type == 4) { // LAPIC NMI
             struct lapic_nmi_t *lapic_nmi = (struct lapic_nmi_t *) &entry->start;
             lapic_nmis[lapic_nmis_curr_index++] = lapic_nmi;
-            klog_debug("- LAPIC NMI: acpi_id %d  flags %d  lint %d", lapic_nmi->acpi_id, lapic_nmi->flags, lapic_nmi->lint);
+            klog_debug("- LAPIC NMI: acpi_id %llu  flags %llu  lint %llu", lapic_nmi->acpi_id, lapic_nmi->flags, lapic_nmi->lint);
         }
 
         i += entry->length;

@@ -48,7 +48,7 @@ void ioapic_init(void) {
         uint32_t first_gsi = ioapic->gsi_base;
         uint32_t last_gsi = first_gsi + ioapic_get_max_redir_entry(ioapic->address);
 
-        klog_info("IOAPIC id %d initialized (GSIs %d-%d)", ioapic->id, first_gsi, last_gsi);
+        klog_info("IOAPIC id %llu initialized (GSIs %llu-%llu)", ioapic->id, first_gsi, last_gsi);
     }
 }
 
@@ -102,5 +102,5 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
         ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
     }
 
-    klog_debug("IOAPIC: Unmasked ISA IRQ %d", isa_irq);
+    klog_debug("IOAPIC: Unmasked ISA IRQ %llu", isa_irq);
 }

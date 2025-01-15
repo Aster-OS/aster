@@ -295,5 +295,5 @@ void kheap_init(void) {
     unset_flag(head, FLAG_IS_PREV_FREE);
     freelist_add_node(head);
 
-    klog_info("Heap initialized with %dMiB of avl. memory", HEAP_SIZE >> 20);
+    klog_info("Heap initialized with %lluMiB of avl. memory", HEAP_SIZE >> 20);
 }

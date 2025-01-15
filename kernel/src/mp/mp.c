@@ -60,7 +60,7 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
     lapic_timer_calibrate(1000000);
     cpu_set_int_state(true);
 
-    klog_info("CPU #%u initialized", cpu->id);
+    klog_info("CPU #%llu initialized", cpu->id);
 
     __atomic_fetch_add(&initialized_cpu_count, 1, __ATOMIC_SEQ_CST);
 
@@ -90,7 +90,7 @@ void mp_halt_all_cpus(void) {
 
 void mp_init(struct limine_mp_response *mp) {
     klog_debug("x2APIC enabled: %s", mp->flags & LIMINE_MP_X2APIC ? "yes" : "no");
-    klog_debug("BSP LAPIC ID: %d", mp->bsp_lapic_id);
+    klog_debug("BSP LAPIC ID: %llu", mp->bsp_lapic_id);
 
     cpus = (struct cpu_t **) kheap_alloc(mp->cpu_count * sizeof(struct cpu_t *));
 
