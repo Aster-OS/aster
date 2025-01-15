@@ -16,7 +16,7 @@ struct cpu_t {
     bool interrupts_enabled;
 };
 
-bool cpu_set_int_state(bool interrupts_enabled);
+bool cpu_set_int_state(bool enabled);
 
 struct cpu_t *get_cpu(void);
 void set_cpu(struct cpu_t *cpu);

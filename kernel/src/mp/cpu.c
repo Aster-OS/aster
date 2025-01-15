@@ -11,11 +11,11 @@ void set_cpu(struct cpu_t *cpu) {
     wrmsr(MSR_KERNEL_GS_BASE, (uint64_t) cpu);
 }
 
-bool cpu_set_int_state(bool interrupts_enabled) {
+bool cpu_set_int_state(bool enabled) {
     disable_interrupts();
     bool interrupts_prev_enabled = get_cpu()->interrupts_enabled;
-    if (interrupts_enabled) {
-        get_cpu()->interrupts_enabled = true;
+    get_cpu()->interrupts_enabled = enabled;
+    if (enabled) {
         enable_interrupts();
     }
     return interrupts_prev_enabled;
