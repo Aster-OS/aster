@@ -110,12 +110,17 @@ void lapic_ipi(uint8_t vec, uint8_t dest_lapic_id) {
 }
 
 void lapic_ipi_all(uint8_t vec) {
+    struct cpu_t *this_cpu = get_cpu();
     struct cpu_t **cpus = mp_get_cpus();
     uint64_t cpu_count = mp_get_cpu_count();
     for (uint64_t i = 0; i < cpu_count; i++) {
         struct cpu_t *cpu = cpus[i];
-        lapic_ipi(vec, cpu->lapic_id);
+        if (cpu != this_cpu) {
+            lapic_ipi(vec, cpu->lapic_id);
+        }
     }
+    
+    lapic_ipi(vec, this_cpu->lapic_id);
 }
 
 void lapic_ipi_all_no_self(uint8_t vec) {
