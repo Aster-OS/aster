@@ -76,6 +76,7 @@ void mp_init(struct limine_mp_response *mp) {
 
     if (mp->cpu_count == 1) {
         klog_info("No APs to initialize");
+        cpus[0] = &bsp;
         return;
     }
 
