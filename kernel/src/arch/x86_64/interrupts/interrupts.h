@@ -16,6 +16,7 @@ struct __attribute__((packed)) int_ctx_t {
 
 typedef void (*int_handler_t)(struct int_ctx_t *frame);
 
+uint8_t interrupts_alloc_vector(void);
 uint8_t interrupts_get_isa_irq_vec(uint8_t isa_irq);
 void interrupts_init(void);
 void interrupts_set_handler(uint8_t vec, int_handler_t handler);
