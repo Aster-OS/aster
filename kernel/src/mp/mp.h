@@ -7,5 +7,7 @@
 #include "mp/cpu.h"
 
 struct cpu_t *mp_get_bsp(void);
-void mp_init_aps(struct limine_mp_response *mp);
+uint64_t mp_get_cpu_count(void);
+struct cpu_t **mp_get_cpus(void);
+void mp_init(struct limine_mp_response *mp);
 void mp_init_bsp(struct limine_mp_response *mp);

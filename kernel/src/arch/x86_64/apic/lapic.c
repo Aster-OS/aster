@@ -47,6 +47,17 @@ enum lapic_lvt_trig_mode {
     LVT_TRIG_LEVEL = 1 << 15
 };
 
+enum lapic_icr_dest_mode {
+    ICR_DEST_MODE_PHYSICAL = 0x0 << 11,
+    ICR_DEST_MODE_LOGICAL  = 0x1 << 11
+};
+
+enum lapic_icr_shorthand {
+    ICR_SHORTHAND_SELF        = 0x1 << 18,
+    ICR_SHORTHAND_ALL         = 0x2 << 18,
+    ICR_SHORTHAND_ALL_NO_SELF = 0x3 << 18
+};
+
 static const uint32_t LVT_MASKED = 1 << 16;
 
 enum lapic_lvt_timer_mode {
@@ -91,6 +102,36 @@ void lapic_init(void) {
     lapic_wr(REG_TIMER_DIV, 0x3); // divisor 16
 
     klog_info("CPU #%u LAPIC initialized", get_cpu()->id);
+}
+
+void lapic_ipi(uint8_t vec, uint8_t dest_lapic_id) {
+    lapic_wr(REG_ICR_HIGH, (uint32_t) dest_lapic_id << 24);
+    lapic_wr(REG_ICR_LOW, LVT_DELIV_MODE_FIXED | vec);
+}
+
+void lapic_ipi_all(uint8_t vec) {
+    struct cpu_t **cpus = mp_get_cpus();
+    uint64_t cpu_count = mp_get_cpu_count();
+    for (uint64_t i = 0; i < cpu_count; i++) {
+        struct cpu_t *cpu = cpus[i];
+        lapic_ipi(vec, cpu->lapic_id);
+    }
+}
+
+void lapic_ipi_all_no_self(uint8_t vec) {
+    struct cpu_t *this_cpu = get_cpu();
+    struct cpu_t **cpus = mp_get_cpus();
+    uint64_t cpu_count = mp_get_cpu_count();
+    for (uint64_t i = 0; i < cpu_count; i++) {
+        struct cpu_t *cpu = cpus[i];
+        if (cpu != this_cpu) {
+            lapic_ipi(vec, cpu->lapic_id);
+        }
+    }
+}
+
+void lapic_ipi_self(uint8_t vec) {
+    lapic_wr(REG_ICR_LOW, ICR_SHORTHAND_SELF | vec);
 }
 
 void lapic_send_eoi(void) {

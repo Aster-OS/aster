@@ -106,7 +106,7 @@ void kmain(void) {
 
     lapic_timer_calibrate(1000000);
 
-    mp_init_aps(mp);
+    mp_init(mp);
 
     kpanic("End of kmain");
 }

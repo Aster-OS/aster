@@ -11,7 +11,7 @@
 
 static struct cpu_t bsp;
 static struct cpu_t **cpus;
-static uint64_t initialized_ap_count;
+static uint64_t initialized_cpu_count = 1;
 
 static inline void init_cpu_data(struct cpu_t *cpu, uint64_t id, struct limine_mp_info *limine_cpu_info) {
     cpu->id = id;
@@ -39,7 +39,15 @@ void mp_init_bsp(struct limine_mp_response *mp) {
     kpanic("Could not find BSP");
 }
 
-static void ap_init(struct limine_mp_info *cpu_info) {
+uint64_t mp_get_cpu_count(void) {
+    return initialized_cpu_count;
+}
+
+struct cpu_t **mp_get_cpus(void) {
+    return cpus;
+}
+
+static void ap_entry(struct limine_mp_info *cpu_info) {
     struct cpu_t *cpu = (struct cpu_t *) cpu_info->extra_argument;
 
     set_cpu(cpu);
@@ -54,13 +62,13 @@ static void ap_init(struct limine_mp_info *cpu_info) {
 
     klog_info("CPU #%u initialized", cpu->id);
 
-    __atomic_fetch_add(&initialized_ap_count, 1, __ATOMIC_SEQ_CST);
+    __atomic_fetch_add(&initialized_cpu_count, 1, __ATOMIC_SEQ_CST);
 
     disable_interrupts();
     while (1) halt();
 }
 
-void mp_init_aps(struct limine_mp_response *mp) {
+void mp_init(struct limine_mp_response *mp) {
     klog_debug("x2APIC enabled: %s", mp->flags & LIMINE_MP_X2APIC ? "yes" : "no");
     klog_debug("BSP LAPIC ID: %d", mp->bsp_lapic_id);
 
@@ -91,13 +99,12 @@ void mp_init_aps(struct limine_mp_response *mp) {
         }
 
         limine_cpu_info->extra_argument = (uint64_t) cpu;
-        __atomic_store_n(&limine_cpu_info->goto_address, ap_init, __ATOMIC_SEQ_CST);
+        __atomic_store_n(&limine_cpu_info->goto_address, ap_entry, __ATOMIC_SEQ_CST);
     }
 
-    while (__atomic_load_n(&initialized_ap_count, __ATOMIC_SEQ_CST) != (mp->cpu_count - 1)) {
+    while (__atomic_load_n(&initialized_cpu_count, __ATOMIC_SEQ_CST) != mp->cpu_count) {
         pause();
     }
 
-    klog_info("MP initialized %llu %s, system has %llu CPUs",
-        initialized_ap_count, initialized_ap_count > 1 ? "APs" : "AP", mp->cpu_count);
+    klog_info("MP initialized %llu %s", initialized_cpu_count, initialized_cpu_count > 1 ? "CPUs" : "CPU");
 }
