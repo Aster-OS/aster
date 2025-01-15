@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include "arch/x86_64/asm_wrappers.h"
-#include "mp/mp.h"
 
 struct spinlock_t {
     uint8_t lock;
