@@ -77,10 +77,14 @@ static void halt_cpu(struct int_ctx_t *ctx) {
 __attribute__((noreturn))
 void mp_halt_all_cpus(void) {
     klog_fatal("Halting all CPUs...");
-    uint8_t halt_cpu_vector = interrupts_alloc_vector();
-    interrupts_set_handler(halt_cpu_vector, halt_cpu);
-    lapic_ipi_all(halt_cpu_vector);
-    cpu_set_int_state(true);
+    // a call to this function may happen very early
+    // when the LAPIC isn't even initialized
+    if (get_cpu()->lapic_addr) {
+        uint8_t halt_cpu_vector = interrupts_alloc_vector();
+        interrupts_set_handler(halt_cpu_vector, halt_cpu);
+        lapic_ipi_all(halt_cpu_vector);
+        cpu_set_int_state(true);
+    }
     while (1) halt();
 }
 
