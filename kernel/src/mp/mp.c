@@ -64,7 +64,23 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
 
     __atomic_fetch_add(&initialized_cpu_count, 1, __ATOMIC_SEQ_CST);
 
-    disable_interrupts();
+    while (1) halt();
+}
+
+static void halt_cpu(struct int_ctx_t *ctx) {
+    (void) ctx;
+    cpu_set_int_state(false);
+    klog_fatal("CPU #%llu halted", get_cpu()->id);
+    while (1) halt();
+}
+
+__attribute__((noreturn))
+void mp_halt_all_cpus(void) {
+    klog_fatal("Halting all CPUs...");
+    uint8_t halt_cpu_vector = interrupts_alloc_vector();
+    interrupts_set_handler(halt_cpu_vector, halt_cpu);
+    lapic_ipi_all(halt_cpu_vector);
+    cpu_set_int_state(true);
     while (1) halt();
 }
 
