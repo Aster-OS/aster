@@ -12,8 +12,8 @@ enum ioapic_redtbl_deliv_mode {
 };
 
 enum ioapic_redtbl_dest_mode {
-    IOAPIC_DEST_PHYS = 0x0,
-    IOAPIC_DEST_LOG  = 0x800
+    IOAPIC_DEST_PHYSICAL = 0x0,
+    IOAPIC_DEST_LOGICAL  = 0x800
 };
 
 // TODO delivery status

@@ -68,7 +68,7 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
         uint64_t redtbl_val = 0;
         redtbl_val |= isa_irq_vec;
         redtbl_val |= IOAPIC_DELIV_FIXED;
-        redtbl_val |= IOAPIC_DEST_PHYS;
+        redtbl_val |= IOAPIC_DEST_PHYSICAL;
         redtbl_val |= IOAPIC_ACTIVE_HIGH;
         redtbl_val |= IOAPIC_TRIG_EDGE;
         redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
