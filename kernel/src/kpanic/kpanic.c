@@ -4,6 +4,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/printf/printf.h"
+#include "mp/mp.h"
 
 static char kpanic_buf[256];
 
@@ -25,18 +26,16 @@ static void do_stacktrace(void) {
 
 __attribute__((noreturn))
 void kpanic(const char *reason, ...) {
-    disable_interrupts();
+    cpu_set_int_state(false);
 
     va_list va;
     va_start(va, reason);
     vsnprintf_(kpanic_buf, sizeof(kpanic_buf), reason, va);
     va_end(va);
 
-    klog_fatal("KERNEL PANIC >>> %s", kpanic_buf);
+    klog_fatal("KERNEL PANIC on CPU #%llu >>> %s", get_cpu()->id, kpanic_buf);
     do_stacktrace();
-    klog_fatal("System halted");
-
-    while (1) halt();
+    mp_halt_all_cpus();
 }
 
 static void print_int_ctx(struct int_ctx_t *ctx) {
@@ -57,17 +56,15 @@ static void print_int_ctx(struct int_ctx_t *ctx) {
 
 __attribute__((noreturn))
 void kpanic_int_ctx(struct int_ctx_t *ctx, const char *reason, ...) {
-    disable_interrupts();
+    cpu_set_int_state(false);
 
     va_list va;
     va_start(va, reason);
     vsnprintf_(kpanic_buf, sizeof(kpanic_buf), reason, va);
     va_end(va);
 
-    klog_fatal("KERNEL PANIC >>> %s", kpanic_buf);
+    klog_fatal("KERNEL PANIC on CPU #%llu >>> %s", get_cpu()->id, kpanic_buf);
     print_int_ctx(ctx);
     do_stacktrace();
-    klog_fatal("System halted");
-
-    while (1) halt();
+    mp_halt_all_cpus();
 }
