@@ -24,6 +24,12 @@ __attribute__((used, section(".limine_requests")))
 static volatile LIMINE_BASE_REVISION(3)
 
 __attribute__((used, section(".limine_requests")))
+static volatile struct limine_bootloader_info_request bootloader_info_request = {
+    .id = LIMINE_BOOTLOADER_INFO_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request fb_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
     .revision = 0
@@ -48,14 +54,14 @@ static volatile struct limine_memmap_request memmap_request = {
 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile struct limine_rsdp_request rsdp_request = {
-    .id = LIMINE_RSDP_REQUEST,
+static volatile struct limine_mp_request mp_request = {
+    .id = LIMINE_MP_REQUEST,
     .revision = 0
 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile struct limine_mp_request mp_request = {
-    .id = LIMINE_MP_REQUEST,
+static volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST,
     .revision = 0
 };
 
@@ -74,15 +80,18 @@ void kmain(void) {
         halt();
     }
 
+    struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
     uint64_t hhdm_offset = hhdm_request.response->offset;
     struct limine_kernel_address_response *kaddr = kaddr_request.response;
     struct limine_memmap_response *memmap = memmap_request.response;
-    struct limine_rsdp_response *rsdp = rsdp_request.response;
     struct limine_mp_response *mp = mp_request.response;
+    struct limine_rsdp_response *rsdp = rsdp_request.response;
 
     klog_init(fb_request.response->framebuffers[0], LOG_LVL_INFO, LOG_LVL_DEBUG);
 
     mp_init_bsp(mp);
+
+    klog_info("Aster booted by %s v%s", bootloader_info->name, bootloader_info->version);
 
     gdt_init();
     gdt_reload_segments();
