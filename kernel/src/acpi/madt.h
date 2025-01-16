@@ -40,16 +40,16 @@ struct __attribute__((packed)) lapic_nmi_t {
 };
 
 struct lapic_nmi_t **madt_get_lapic_nmis(void);
-uint16_t madt_get_lapic_nmis_count(void);
+uint16_t madt_get_lapic_nmi_count(void);
 
 struct ioapic_t **madt_get_ioapics(void);
-uint16_t madt_get_ioapics_count(void);
+uint16_t madt_get_ioapic_count(void);
 
 struct ioapic_iso_t **madt_get_ioapic_isos(void);
-uint16_t madt_get_ioapic_isos_count(void);
+uint16_t madt_get_ioapic_iso_count(void);
 
 struct ioapic_nmi_t **madt_get_ioapic_nmis(void);
-uint16_t madt_get_ioapic_nmis_count(void);
+uint16_t madt_get_ioapic_nmi_count(void);
 
 struct ioapic_t *madt_find_ioapic_by_gsi(uint32_t gsi);
 struct ioapic_iso_t *madt_find_iso_by_isa_irq(uint8_t isa_irq);

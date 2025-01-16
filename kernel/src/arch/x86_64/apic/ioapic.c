@@ -41,7 +41,7 @@ void ioapic_wr_redtbl(struct ioapic_t *ioapic, uint32_t gsi, uint64_t val) {
 }
 
 void ioapic_init(void) {
-    for (uint16_t i = 0; i < madt_get_ioapics_count(); i++) {
+    for (uint16_t i = 0; i < madt_get_ioapic_count(); i++) {
         struct ioapic_t *ioapic = madt_get_ioapics()[i];
         vmm_map_hhdm(ioapic->address);
 

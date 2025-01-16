@@ -29,51 +29,51 @@ struct __attribute__((packed)) madt_t {
 static const uint32_t MADT_FLAG_PCAT_COMPAT = 1 << 0;
 
 static struct lapic_nmi_t **lapic_nmis;
-static uint16_t lapic_nmis_count;
+static uint16_t lapic_nmi_count;
 
 static struct ioapic_t **ioapics;
-static uint16_t ioapics_count;
+static uint16_t ioapic_count;
 
 static struct ioapic_iso_t **ioapic_isos;
-static uint16_t ioapic_isos_count;
+static uint16_t ioapic_iso_count;
 
 static struct ioapic_nmi_t **ioapic_nmis;
-static uint16_t ioapic_nmis_count;
+static uint16_t ioapic_nmi_count;
 
 struct lapic_nmi_t **madt_get_lapic_nmis(void) {
     return lapic_nmis;
 }
 
-uint16_t madt_get_lapic_nmis_count(void) {
-    return lapic_nmis_count;
+uint16_t madt_get_lapic_nmi_count(void) {
+    return lapic_nmi_count;
 }
 
 struct ioapic_t **madt_get_ioapics(void) {
     return ioapics;
 }
 
-uint16_t madt_get_ioapics_count(void) {
-    return ioapics_count;
+uint16_t madt_get_ioapic_count(void) {
+    return ioapic_count;
 }
 
 struct ioapic_iso_t **madt_get_ioapic_isos(void) {
     return ioapic_isos;
 }
 
-uint16_t madt_get_ioapic_isos_count(void) {
-    return ioapic_isos_count;
+uint16_t madt_get_ioapic_iso_count(void) {
+    return ioapic_iso_count;
 }
 
 struct ioapic_nmi_t **madt_get_ioapic_nmis(void) {
     return ioapic_nmis;
 }
 
-uint16_t madt_get_ioapic_nmis_count(void) {
-    return ioapic_nmis_count;
+uint16_t madt_get_ioapic_nmi_count(void) {
+    return ioapic_nmi_count;
 }
 
 struct ioapic_t *madt_find_ioapic_by_gsi(uint32_t gsi) {
-    for (uint8_t i = 0; i < ioapics_count; i++) {
+    for (uint8_t i = 0; i < ioapic_count; i++) {
         struct ioapic_t *ioapic = ioapics[i];
         uint32_t first_gsi = ioapic->gsi_base;
         uint32_t last_gsi = first_gsi + ioapic_get_max_redir_entry(ioapic->address);
@@ -105,27 +105,27 @@ void madt_init(void) {
         struct madt_entry_t *entry = (struct madt_entry_t *) &madt->entries[i];
 
         if (entry->type == 1) { // IOAPIC
-            ioapics_count++;
+            ioapic_count++;
         } else if (entry->type == 2) { // IOAPIC ISO
-            ioapic_isos_count++;
+            ioapic_iso_count++;
         } else if (entry->type == 3) { // IOAPIC NMI
-            ioapic_nmis_count++;
+            ioapic_nmi_count++;
         } else if (entry->type == 4) { // LAPIC NMI
-            lapic_nmis_count++;
+            lapic_nmi_count++;
         }
 
         i += entry->length;
     }
 
-    klog_debug("MADT: Found %llu IOAPIC %s", ioapics_count, ioapics_count == 1 ? "entry" : "entries");
-    klog_debug("MADT: Found %llu IOAPIC ISO %s", ioapic_isos_count, ioapic_isos_count == 1 ? "entry" : "entries");
-    klog_debug("MADT: Found %llu IOAPIC NMI %s", ioapic_nmis_count, ioapic_nmis_count == 1 ? "entry" : "entries");
-    klog_debug("MADT: Found %llu LAPIC NMI %s", lapic_nmis_count, lapic_nmis_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu IOAPIC %s", ioapic_count, ioapic_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu IOAPIC ISO %s", ioapic_iso_count, ioapic_iso_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu IOAPIC NMI %s", ioapic_nmi_count, ioapic_nmi_count == 1 ? "entry" : "entries");
+    klog_debug("MADT: Found %llu LAPIC NMI %s", lapic_nmi_count, lapic_nmi_count == 1 ? "entry" : "entries");
 
-    ioapics = kheap_alloc(ioapics_count * sizeof(struct ioapic_t *));
-    ioapic_isos = kheap_alloc(ioapic_isos_count * sizeof(struct ioapic_iso_t *));
-    ioapic_nmis = kheap_alloc(ioapic_nmis_count * sizeof(struct ioapic_nmi_t *));
-    lapic_nmis = kheap_alloc(ioapic_nmis_count * sizeof(struct lapic_nmi_t *));
+    ioapics = kheap_alloc(ioapic_count * sizeof(struct ioapic_t *));
+    ioapic_isos = kheap_alloc(ioapic_iso_count * sizeof(struct ioapic_iso_t *));
+    ioapic_nmis = kheap_alloc(ioapic_nmi_count * sizeof(struct ioapic_nmi_t *));
+    lapic_nmis = kheap_alloc(ioapic_nmi_count * sizeof(struct lapic_nmi_t *));
 
     uint16_t ioapics_curr_index = 0;
     uint16_t ioapic_isos_curr_index = 0;
