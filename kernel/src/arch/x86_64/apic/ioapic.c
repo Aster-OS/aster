@@ -67,10 +67,10 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
 
         uint64_t redtbl_val = 0;
         redtbl_val |= isa_irq_vec;
-        redtbl_val |= IOAPIC_DELIV_FIXED;
-        redtbl_val |= IOAPIC_DEST_PHYSICAL;
+        redtbl_val |= IOAPIC_DELIV_MODE_FIXED;
+        redtbl_val |= IOAPIC_DEST_MODE_PHYSICAL;
         redtbl_val |= IOAPIC_ACTIVE_HIGH;
-        redtbl_val |= IOAPIC_TRIG_EDGE;
+        redtbl_val |= IOAPIC_TRIGGER_EDGE;
         redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
 
         ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
@@ -82,23 +82,20 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
         uint64_t redtbl_val = 0;
         redtbl_val |= isa_irq_vec;
 
-        uint8_t iso_pin_polarity = ioapic_iso->flags & IOAPIC_ISO_ACTIVE_MASK;
-        uint8_t iso_trigger_mode = ioapic_iso->flags & IOAPIC_ISO_TRIG_MASK;
-
-        if (iso_pin_polarity == IOAPIC_ISO_ACTIVE_HIGH) {
+        uint16_t iso_flags = ioapic_iso->flags;
+        if ((iso_flags & MADT_ACTIVE_HIGH) == MADT_ACTIVE_HIGH) {
             redtbl_val |= IOAPIC_ACTIVE_HIGH;
-        } else if (iso_pin_polarity == IOAPIC_ISO_ACTIVE_LOW) {
+        } else if ((iso_flags & MADT_ACTIVE_LOW) == MADT_ACTIVE_LOW) {
             redtbl_val |= IOAPIC_ACTIVE_LOW;
         }
 
-        if (iso_trigger_mode == IOAPIC_ISO_TRIG_EDGE) {
-            redtbl_val |= IOAPIC_TRIG_EDGE;
-        } else if (iso_trigger_mode == IOAPIC_ISO_TRIG_LEVEL) {
-            redtbl_val |= IOAPIC_TRIG_LEVEL;
+        if ((iso_flags & MADT_TRIGGER_EDGE) == MADT_TRIGGER_EDGE) {
+            redtbl_val |= IOAPIC_TRIGGER_EDGE;
+        } else if ((iso_flags & MADT_TRIGGER_LEVEL) == MADT_TRIGGER_LEVEL) {
+            redtbl_val |= IOAPIC_TRIGGER_LEVEL;
         }
 
         redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
-        
         ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
     }
 

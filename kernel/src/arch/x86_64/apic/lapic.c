@@ -33,7 +33,7 @@ enum lapic_lvt_deliv_mode {
 };
 
 enum lapic_lvt_deliv_status {
-    LVT_DELIV_STATUS_IDLE    = 0x0,
+    LVT_DELIV_STATUS_SENT    = 0x0,
     LVT_DELIV_STATUS_PENDING = 0x1000
 };
 
@@ -42,11 +42,12 @@ enum lapic_lvt_pin_polarity {
     LVT_ACTIVE_LOW  = 0x2000
 };
 
-enum lapic_lvt_trig_mode {
-    LVT_TRIG_EDGE  = 0x0,
-    LVT_TRIG_LEVEL = 0x8000
+enum lapic_lvt_trigger_mode {
+    LVT_TRIGGER_EDGE  = 0x0,
+    LVT_TRIGGER_LEVEL = 0x8000
 };
 
+__attribute__((used))
 static const uint32_t LVT_MASKED = 0x10000;
 
 enum lapic_lvt_timer_mode {
