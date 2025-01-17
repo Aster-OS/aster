@@ -73,7 +73,7 @@ override CPPFLAGS := \
     -I src \
     -isystem freestnd-c-hdrs-0bsd \
     $(CPPFLAGS) \
-    -DLIMINE_API_REVISION=1 \
+    -DLIMINE_API_REVISION=2 \
     -MMD \
     -MP
 

@@ -140,8 +140,8 @@ static char *get_entry_type(uint64_t entry_type) {
             return "Bad Memory";
         case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
             return "Bootloader Recl.";
-        case LIMINE_MEMMAP_KERNEL_AND_MODULES:
-            return "Kernel & Modules";
+        case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES: // renamed to executable/modules
+            return "Executable/Modules";
         case LIMINE_MEMMAP_FRAMEBUFFER:
             return "Framebuffer";
         default:

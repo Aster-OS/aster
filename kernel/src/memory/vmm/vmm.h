@@ -8,7 +8,7 @@
 #define PTE_FLAG_NX (1ull << 63)
 #define PTE_PHYS_ADDR_MASK 0x7fffffffff000
 
-void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_address_response *kaddr);
+void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_address_response *executable_addr);
 uintptr_t vmm_get_hhdm_offset(void);
 phys_t vmm_get_kernel_pagemap(void);
 void vmm_load_pagemap(phys_t pagemap);

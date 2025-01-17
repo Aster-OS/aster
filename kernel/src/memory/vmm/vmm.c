@@ -19,7 +19,7 @@ static uintptr_t hhdm_offset;
 
 static phys_t kernel_pagemap;
 
-void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_address_response *kaddr) {
+void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_address_response *executable_addr) {
     kernel_pagemap = pmm_alloc(true);
 
     uintptr_t text_start = (uintptr_t) &__TEXT_START;
@@ -31,27 +31,29 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_addres
     uintptr_t limine_reqs_start = (uintptr_t) &__LIMINE_REQUESTS_START;
     uintptr_t limine_reqs_end = (uintptr_t) &__LIMINE_REQUESTS_END;
 
+    uintptr_t virt_to_phys_slide = executable_addr->virtual_base - executable_addr->physical_base;
+
     for (uintptr_t i = text_start; i < text_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
-        phys_t phys = i - kaddr->virtual_base + kaddr->physical_base;
+        phys_t phys = i - virt_to_phys_slide;
         vmm_map_page(kernel_pagemap, virt, phys, 0);
     }
 
     for (uintptr_t i = rodata_start; i < rodata_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
-        phys_t phys = i - kaddr->virtual_base + kaddr->physical_base;
+        phys_t phys = i - virt_to_phys_slide;
         vmm_map_page(kernel_pagemap, virt, phys, PTE_FLAG_NX);
     }
 
     for (uintptr_t i = data_start; i < data_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
-        phys_t phys = i - kaddr->virtual_base + kaddr->physical_base;
+        phys_t phys = i - virt_to_phys_slide;
         vmm_map_page(kernel_pagemap, virt, phys, PTE_FLAG_WRITE | PTE_FLAG_NX);
     }
 
     for (uintptr_t i = limine_reqs_start; i < limine_reqs_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
-        phys_t phys = i - kaddr->virtual_base + kaddr->physical_base;
+        phys_t phys = i - virt_to_phys_slide;
         vmm_map_page(kernel_pagemap, virt, phys, PTE_FLAG_NX);
     }
 
@@ -61,7 +63,7 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_kernel_addres
         // map only usable, bootloader recl, kernel/modules and framebuffer entries
         // as per Limine base revision 3
         if (entry->type == LIMINE_MEMMAP_USABLE || entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE
-        || entry->type == LIMINE_MEMMAP_KERNEL_AND_MODULES || entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
+        || entry->type == LIMINE_MEMMAP_EXECUTABLE_AND_MODULES || entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
             uintptr_t entry_start = align_down(entry->base, PAGE_SIZE);
             uintptr_t entry_end = align_up(entry->base + entry->length, PAGE_SIZE);
 

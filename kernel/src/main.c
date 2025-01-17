@@ -36,14 +36,14 @@ static volatile struct limine_framebuffer_request fb_request = {
 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile struct limine_hhdm_request hhdm_request = {
-    .id = LIMINE_HHDM_REQUEST,
+static volatile struct limine_executable_address_request executable_addr_request = {
+    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
     .revision = 0
 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile struct limine_kernel_address_request kaddr_request = {
-    .id = LIMINE_KERNEL_ADDRESS_REQUEST,
+static volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
     .revision = 0
 };
 
@@ -81,8 +81,8 @@ void kmain(void) {
     }
 
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
+    struct limine_executable_address_response *executable_addr = executable_addr_request.response;
     uint64_t hhdm_offset = hhdm_request.response->offset;
-    struct limine_kernel_address_response *kaddr = kaddr_request.response;
     struct limine_memmap_response *memmap = memmap_request.response;
     struct limine_mp_response *mp = mp_request.response;
     struct limine_rsdp_response *rsdp = rsdp_request.response;
@@ -102,7 +102,7 @@ void kmain(void) {
     vmm_set_hhdm_offset(hhdm_offset);
     pmm_init(memmap);
     pmm_print_memmap(memmap);
-    vmm_init(memmap, kaddr);
+    vmm_init(memmap, executable_addr);
     kheap_init();
     acpi_init(rsdp->address);
     madt_init();
