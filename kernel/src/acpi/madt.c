@@ -159,4 +159,6 @@ void madt_init(void) {
 
         i += entry->length;
     }
+
+    klog_info("MADT initialized");
 }
