@@ -76,7 +76,7 @@ static void halt_cpu(struct int_ctx_t *ctx) {
 
 __attribute__((noreturn))
 void mp_halt_all_cpus(void) {
-    klog_fatal("Halting all CPUs...");
+    klog_fatal("Halting all %llu CPUs...", initialized_cpu_count);
     // a call to this function may happen very early
     // when the LAPIC isn't even initialized
     if (get_cpu()->lapic_addr) {
