@@ -1,3 +1,4 @@
+#include "acpi/madt.h"
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/interrupts/interrupts.h"
@@ -101,6 +102,28 @@ void lapic_init(void) {
     lapic_timer_stop();
     lapic_wr(REG_SPURIOUS, (1 << 8) | LAPIC_SPURIOUS_VEC);
     lapic_wr(REG_TIMER_DIV, 0x3); // divisor 16
+
+    struct lapic_nmi_t **lapic_nmis = madt_get_lapic_nmis();
+    uint64_t lapic_nmi_count = madt_get_lapic_nmi_count();
+    for (uint64_t i = 0; i < lapic_nmi_count; i++) {
+        struct lapic_nmi_t *lapic_nmi = lapic_nmis[i];
+        if (lapic_nmi->acpi_id == 0xff || lapic_nmi->acpi_id == get_cpu()->acpi_id) {
+            uint16_t lvt_flags = 0;
+            if ((lapic_nmi->flags & MADT_ACTIVE_HIGH) == MADT_ACTIVE_HIGH) {
+                lvt_flags = LVT_ACTIVE_HIGH;
+            } else if ((lapic_nmi->flags & MADT_ACTIVE_LOW) == MADT_ACTIVE_LOW) {
+                lvt_flags = LVT_ACTIVE_LOW;
+            }
+
+            // trigger mode is always edge sensitive for NMI delivery mode
+
+            if (lapic_nmi->lint == 0) {
+                lapic_wr(REG_LVT_LINT0, lvt_flags | LVT_DELIV_MODE_NMI | 0x2);
+            } else if (lapic_nmi->lint == 1) {
+                lapic_wr(REG_LVT_LINT1, lvt_flags | LVT_DELIV_MODE_NMI | 0x2);
+            }
+        }
+    }
 
     klog_info("CPU #%llu LAPIC initialized", get_cpu()->id);
 }

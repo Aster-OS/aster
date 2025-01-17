@@ -105,16 +105,12 @@ void kmain(void) {
     vmm_init(memmap, kaddr);
     kheap_init();
     acpi_init(rsdp->address);
-
-    lapic_init();
     madt_init();
+    lapic_init();
     ioapic_init();
     cpu_set_int_state(true);
-
     timer_init();
-
     lapic_timer_calibrate(1000000);
-
     mp_init(mp);
 
     kpanic("End of kmain");
