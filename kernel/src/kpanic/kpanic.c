@@ -4,6 +4,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/printf/printf.h"
+#include "lib/spinlock/spinlock.h"
 #include "mp/mp.h"
 
 static char kpanic_buf[256];
@@ -40,6 +41,8 @@ static void do_stacktrace(void) {
     }
 }
 
+static struct spinlock_t panic_lock;
+
 __attribute__((noreturn))
 static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va) {
     vsnprintf_(kpanic_buf, sizeof(kpanic_buf), reason, va);
@@ -53,6 +56,7 @@ static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va
 __attribute__((noreturn))
 void kpanic(const char *reason, ...) {
     cpu_set_int_state(false);
+    spinlock_acquire(&panic_lock);
 
     va_list va;
     va_start(va, reason);
@@ -63,6 +67,7 @@ void kpanic(const char *reason, ...) {
 __attribute__((noreturn))
 void kpanic_int_ctx(struct int_ctx_t *ctx, const char *reason, ...) {
     cpu_set_int_state(false);
+    spinlock_acquire(&panic_lock);
 
     va_list va;
     va_start(va, reason);
