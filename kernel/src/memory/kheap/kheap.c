@@ -286,7 +286,7 @@ void kheap_free(void *ptr) {
 void kheap_init(void) {
     for (uintptr_t virt = HEAP_START; virt < HEAP_END; virt += PAGE_SIZE) {
         phys_t phys = pmm_alloc(true);
-        vmm_map_page(vmm_get_kernel_pagemap(), virt, phys, PTE_FLAG_WRITE | PTE_FLAG_NX);
+        vmm_map_page(vmm_get_kernel_pagemap(), virt, phys, VMM_PAGE_WRITE | VMM_PAGE_NX);
     }
 
     struct free_node_t *head = (struct free_node_t *) HEAP_START;

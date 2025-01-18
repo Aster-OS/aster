@@ -5,10 +5,11 @@
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
-static const uint64_t PTE_FLAG_PRESENT = 1 << 0;
-static const uint64_t PTE_FLAGS_HHDM = PTE_FLAG_WRITE | PTE_FLAG_NX;
+static const uint64_t VMM_PAGE_PRESENT = 1 << 0;
+static const uint64_t VMM_FLAGS_HHDM = VMM_PAGE_WRITE | VMM_PAGE_NX;
 
 typedef uint64_t pml_entry_t;
+static const uint64_t PTE_PHYS_ADDR_MASK = 0x7fffffffff000;
 
 extern unsigned char __TEXT_START[], __TEXT_END[];
 extern unsigned char __RODATA_START[], __RODATA_END[];
@@ -42,19 +43,19 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_ad
     for (uintptr_t i = rodata_start; i < rodata_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
         phys_t phys = i - virt_to_phys_slide;
-        vmm_map_page(kernel_pagemap, virt, phys, PTE_FLAG_NX);
+        vmm_map_page(kernel_pagemap, virt, phys, VMM_PAGE_NX);
     }
 
     for (uintptr_t i = data_start; i < data_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
         phys_t phys = i - virt_to_phys_slide;
-        vmm_map_page(kernel_pagemap, virt, phys, PTE_FLAG_WRITE | PTE_FLAG_NX);
+        vmm_map_page(kernel_pagemap, virt, phys, VMM_PAGE_WRITE | VMM_PAGE_NX);
     }
 
     for (uintptr_t i = limine_reqs_start; i < limine_reqs_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
         phys_t phys = i - virt_to_phys_slide;
-        vmm_map_page(kernel_pagemap, virt, phys, PTE_FLAG_NX);
+        vmm_map_page(kernel_pagemap, virt, phys, VMM_PAGE_NX);
     }
 
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
@@ -68,7 +69,7 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_ad
             uintptr_t entry_end = align_up(entry->base + entry->length, PAGE_SIZE);
 
             for (uintptr_t j = entry_start; j < entry_end; j += PAGE_SIZE) {
-                vmm_map_page(kernel_pagemap, j + hhdm_offset, j, PTE_FLAGS_HHDM);
+                vmm_map_page(kernel_pagemap, j + hhdm_offset, j, VMM_FLAGS_HHDM);
             }
         }
     }
@@ -94,14 +95,14 @@ static phys_t get_next_pml(phys_t pml, uint16_t pml_index) {
     pml_entry_t *pml_hhdm = (pml_entry_t *) (pml + hhdm_offset);
     pml_entry_t *pml_entry = &pml_hhdm[pml_index];
 
-    if (*pml_entry & PTE_FLAG_PRESENT) {
+    if (*pml_entry & VMM_PAGE_PRESENT) {
         return *pml_entry & PTE_PHYS_ADDR_MASK;
     }
 
     // the requested flags will be set only for the pml1 entry,
     // allowing pages with different permissions at the last level
     // all other pml entries are granted all permissions (write, user, execute)
-    *pml_entry = (pml_entry_t) pmm_alloc(true) | PTE_FLAG_PRESENT | PTE_FLAG_WRITE | PTE_FLAG_USER;
+    *pml_entry = (pml_entry_t) pmm_alloc(true) | VMM_PAGE_PRESENT | VMM_PAGE_WRITE | VMM_PAGE_USER;
     return *pml_entry & PTE_PHYS_ADDR_MASK;
 }
 
@@ -129,12 +130,12 @@ static inline void invlpg_if_needed(phys_t pagemap, uintptr_t virt) {
 }
 
 void vmm_map_hhdm(phys_t phys) {
-    vmm_map_page(kernel_pagemap, phys + hhdm_offset, phys, PTE_FLAGS_HHDM);
+    vmm_map_page(kernel_pagemap, phys + hhdm_offset, phys, VMM_FLAGS_HHDM);
 }
 
 void vmm_map_page(phys_t pagemap, uintptr_t virt, phys_t phys, uint64_t flags) {
     // pages are always mapped with the present flag set
-    *get_pml1_entry(pagemap, virt) = phys | PTE_FLAG_PRESENT | flags;
+    *get_pml1_entry(pagemap, virt) = phys | VMM_PAGE_PRESENT | flags;
     invlpg_if_needed(pagemap, virt);
 }
 
@@ -167,7 +168,7 @@ void vmm_unmap_range_contig(phys_t pagemap, uintptr_t virt_start, uint64_t page_
 
 phys_t vmm_walk_page(phys_t pagemap, uintptr_t virt) {
     pml_entry_t pml1_entry = *get_pml1_entry(pagemap, virt);
-    if (pml1_entry & PTE_FLAG_PRESENT) {
+    if (pml1_entry & VMM_PAGE_PRESENT) {
         uint16_t page_offset = virt & 0xfff;
         return (pml1_entry & PTE_PHYS_ADDR_MASK) | page_offset;
     } else {

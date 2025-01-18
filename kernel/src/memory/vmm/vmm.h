@@ -3,10 +3,9 @@
 #include "limine.h"
 #include "memory/pmm/pmm.h"
 
-#define PTE_FLAG_WRITE (1 << 1)
-#define PTE_FLAG_USER (1 << 2)
-#define PTE_FLAG_NX (1ull << 63)
-#define PTE_PHYS_ADDR_MASK 0x7fffffffff000
+#define VMM_PAGE_WRITE (1 << 1)
+#define VMM_PAGE_USER (1 << 2)
+#define VMM_PAGE_NX (1ull << 63)
 
 void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_address_response *executable_addr);
 uintptr_t vmm_get_hhdm_offset(void);
