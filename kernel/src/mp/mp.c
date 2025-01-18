@@ -13,10 +13,16 @@ static struct cpu_t bsp;
 static struct cpu_t **cpus;
 static uint64_t initialized_cpu_count = 1;
 
-static inline void init_cpu_data(struct cpu_t *cpu, uint64_t id, struct limine_mp_info *limine_cpu_info) {
+static const uint64_t LAPIC_CALIBRATION_NS = 100000;
+
+static inline void init_cpu_data(struct cpu_t *cpu,
+                                uint64_t id, uint64_t acpi_id, uint64_t lapic_id,
+                                uint64_t lapic_calibration_ns, bool x2apic_enabled) {
     cpu->id = id;
-    cpu->lapic_id = limine_cpu_info->lapic_id;
-    cpu->acpi_id = limine_cpu_info->processor_id;
+    cpu->acpi_id = acpi_id;
+    cpu->lapic_id = lapic_id;
+    cpu->lapic_calibration_ns = lapic_calibration_ns;
+    cpu->x2apic_enabled = x2apic_enabled;
     cpu->interrupts_enabled = false;
 }
 
@@ -26,11 +32,13 @@ struct cpu_t *mp_get_bsp(void) {
 
 void mp_init_bsp(struct limine_mp_response *mp) {
     for (uint64_t i = 0; i < mp->cpu_count; i++) {
-        struct limine_mp_info *limine_cpu_info = mp->cpus[i];
-        bool is_bsp = limine_cpu_info->lapic_id == mp->bsp_lapic_id;
+        struct limine_mp_info *cpu_info = mp->cpus[i];
+        bool is_bsp = cpu_info->lapic_id == mp->bsp_lapic_id;
 
         if (is_bsp) {
-            init_cpu_data(&bsp, i, limine_cpu_info);
+            init_cpu_data(&bsp,
+                            i, cpu_info->processor_id, cpu_info->lapic_id,
+                            LAPIC_CALIBRATION_NS, mp->flags & LIMINE_MP_X2APIC);
             set_cpu(&bsp);
             return;
         }
@@ -57,7 +65,7 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
     gdt_reload_tss();
     idt_reload();
     lapic_init();
-    lapic_timer_calibrate(1000000);
+    lapic_timer_calibrate();
     cpu_set_int_state(true);
 
     klog_info("CPU #%llu initialized", cpu->id);
@@ -89,9 +97,7 @@ void mp_halt_all_cpus(void) {
 }
 
 void mp_init(struct limine_mp_response *mp) {
-    klog_debug("x2APIC enabled: %s", mp->flags & LIMINE_MP_X2APIC ? "yes" : "no");
-    klog_debug("BSP LAPIC ID: %llu", mp->bsp_lapic_id);
-
+    klog_debug("x2APIC enabled? %s", mp->flags & LIMINE_MP_X2APIC ? "yes" : "no");
     cpus = (struct cpu_t **) kheap_alloc(mp->cpu_count * sizeof(struct cpu_t *));
 
     if (mp->cpu_count == 1) {
@@ -101,8 +107,8 @@ void mp_init(struct limine_mp_response *mp) {
     }
 
     for (uint64_t i = 0; i < mp->cpu_count; i++) {
-        struct limine_mp_info *limine_cpu_info = mp->cpus[i];
-        bool is_bsp = limine_cpu_info->lapic_id == mp->bsp_lapic_id;
+        struct limine_mp_info *cpu_info = mp->cpus[i];
+        bool is_bsp = cpu_info->lapic_id == mp->bsp_lapic_id;
 
         struct cpu_t *cpu;
         if (is_bsp) {
@@ -110,7 +116,9 @@ void mp_init(struct limine_mp_response *mp) {
             // bsp data was already initialized
         } else {
             cpu = (struct cpu_t *) kheap_alloc(sizeof(struct cpu_t));
-            init_cpu_data(cpu, i, limine_cpu_info);
+            init_cpu_data(cpu,
+                            i, cpu_info->processor_id, cpu_info->lapic_id,
+                            LAPIC_CALIBRATION_NS, mp->flags & LIMINE_MP_X2APIC);
         }
 
         cpus[i] = cpu;
@@ -119,8 +127,8 @@ void mp_init(struct limine_mp_response *mp) {
             continue;
         }
 
-        limine_cpu_info->extra_argument = (uint64_t) cpu;
-        __atomic_store_n(&limine_cpu_info->goto_address, ap_entry, __ATOMIC_SEQ_CST);
+        cpu_info->extra_argument = (uint64_t) cpu;
+        __atomic_store_n(&cpu_info->goto_address, ap_entry, __ATOMIC_SEQ_CST);
     }
 
     while (__atomic_load_n(&initialized_cpu_count, __ATOMIC_SEQ_CST) != mp->cpu_count) {

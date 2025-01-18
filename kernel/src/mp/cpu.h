@@ -7,11 +7,12 @@
 
 struct cpu_t {
     uint64_t id;
-    uint64_t lapic_id;
     uint64_t acpi_id;
+    uint64_t lapic_id;
     uint64_t lapic_addr;
-    uint64_t lapic_calibration_sleep_ns;
+    uint64_t lapic_calibration_ns;
     uint64_t lapic_calibration_ticks;
+    bool x2apic_enabled;
     struct tss_t tss;
     bool interrupts_enabled;
 };

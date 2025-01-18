@@ -56,6 +56,7 @@ static volatile struct limine_memmap_request memmap_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_mp_request mp_request = {
     .id = LIMINE_MP_REQUEST,
+    .flags = LIMINE_MP_X2APIC,
     .revision = 0
 };
 
@@ -110,7 +111,7 @@ void kmain(void) {
     ioapic_init();
     cpu_set_int_state(true);
     timer_init();
-    lapic_timer_calibrate(1000000);
+    lapic_timer_calibrate();
     mp_init(mp);
 
     kpanic("End of kmain");
