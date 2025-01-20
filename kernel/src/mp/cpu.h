@@ -15,7 +15,11 @@ struct cpu_t {
     bool x2apic_enabled;
     struct tss_t tss;
     bool interrupts_enabled;
+    uint32_t cpuid_basic_max;
+    uint32_t cpuid_extended_max;
 };
+
+void cpuid_init(void);
 
 bool cpu_set_int_state(bool enabled);
 

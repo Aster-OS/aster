@@ -60,7 +60,11 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
 
     set_cpu(cpu);
 
+    // the kernel pagemap must be loaded before any code
+    // that R/W from/to the CPU struct because it is allocated on the heap
     vmm_load_pagemap(vmm_get_kernel_pagemap());
+
+    cpuid_init();
     gdt_reload_segments();
     gdt_reload_tss();
     idt_reload();

@@ -94,6 +94,7 @@ void kmain(void) {
 
     klog_info("Aster booted by %s v%s", bootloader_info->name, bootloader_info->version);
 
+    cpuid_init();
     gdt_init();
     gdt_reload_segments();
     gdt_reload_tss();

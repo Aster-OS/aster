@@ -2,8 +2,22 @@
 
 #include <stdint.h>
 
-static inline void cpuid(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
+#include "mp/cpu.h"
+
+static inline bool cpuid(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
+    bool extended_feature_leaf = leaf >= 0x80000000;
+    if (extended_feature_leaf) {
+        if (leaf > get_cpu()->cpuid_extended_max) {
+            return false;
+        }
+    } else {
+        if (leaf > get_cpu()->cpuid_basic_max) {
+            return false;
+        }
+    }
+
     __asm__ volatile("cpuid" : "=a" (*eax), "=b" (*ebx), "=c" (*ecx), "=d" (*edx) : "a" (leaf), "c" (subleaf));
+    return true;
 }
 
 static inline uint8_t inb(uint16_t port) {
@@ -13,7 +27,7 @@ static inline uint8_t inb(uint16_t port) {
 }
 
 static inline void outb(uint16_t port, uint8_t val) {
-    __asm__ volatile("outb %0, %1" :: "a" (val), "Nd" (port));
+    __asm__ volatile("outb %0, %1" : : "a" (val), "Nd" (port));
 }
 
 static inline void invlpg(uintptr_t addr) {

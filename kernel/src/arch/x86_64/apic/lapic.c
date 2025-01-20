@@ -94,6 +94,7 @@ static void lapic_spurious_handler(struct int_ctx_t *ctx) {
     (void) ctx;
     klog_debug("LAPIC spurious interrupt");
 }
+
 // IDT vectors >= 0xf0 are reserved, so this vector can be used safely
 static const uint8_t LAPIC_SPURIOUS_VEC = 0xf0;
 
@@ -103,9 +104,8 @@ static inline uint32_t ns_to_lapic_ticks(uint64_t ns) {
 
 void lapic_init(void) {
     uint32_t edx, unused;
-    cpuid(0x1, 0x0, &unused, &unused, &unused, &edx);
-    if ((edx & (1 << 9)) == 0) {
-        kpanic("LAPIC not present");
+    if (!cpuid(0x1, 0x0, &unused, &unused, &unused, &edx) || (edx & (1 << 9)) == 0) {
+        kpanic("CPU #%llu, does not have a LAPIC", get_cpu()->id);
     }
 
     get_cpu()->lapic_addr = rdmsr(MSR_IA32_APIC_BASE) & 0xffffff000;
