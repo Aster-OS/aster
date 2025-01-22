@@ -23,6 +23,8 @@ for arg in "$@"; do
             KVM=true ;;
         log)
             LOG=true ;;
+        debugcon)
+            DEBUGCON=true ;;
         serial)
             SERIAL=true ;;
         mp)
@@ -58,6 +60,10 @@ fi
 
 if [ "$LOG" = true ]; then
     QEMU_FLAGS="$QEMU_FLAGS -D ./qemu.log -d int -M smm=off -no-reboot -no-shutdown"
+fi
+
+if [ "$DEBUGCON" = true ]; then
+    QEMU_FLAGS="$QEMU_FLAGS -debugcon stdio"
 fi
 
 if [ "$SERIAL" = true ]; then
