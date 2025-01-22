@@ -4,10 +4,10 @@
 #include "mp/mp.h"
 
 void cpuid_init(void) {
-    uint32_t eax;
-    __asm__ volatile("cpuid" : "=a" (eax) : "a" (0) : "memory", "%ebx", "%ecx", "%edx");
+    uint32_t eax, unused;
+    cpuid_no_leaf_check(0, 0, &eax, &unused, &unused, &unused);
     get_cpu()->cpuid_basic_max = eax;
-    __asm__ volatile("cpuid" : "=a" (eax) : "a" (0x80000000) : "memory", "%ebx", "%ecx", "%edx");
+    cpuid_no_leaf_check(0x80000000, 0, &eax, &unused, &unused, &unused);
     get_cpu()->cpuid_extended_max = eax;
 }
 

@@ -20,6 +20,10 @@ static inline bool cpuid(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_
     return true;
 }
 
+static inline void cpuid_no_leaf_check(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
+    __asm__ volatile("cpuid" : "=a" (*eax), "=b" (*ebx), "=c" (*ecx), "=d" (*edx) : "a" (leaf), "c" (subleaf));
+}
+
 static inline uint8_t inb(uint16_t port) {
     uint8_t val;
     __asm__ volatile("inb %1, %0" : "=a" (val) : "Nd" (port));
