@@ -2,6 +2,8 @@
 MAKEFLAGS += -rR
 .SUFFIXES:
 
+COMMIT_HASH = $(shell git rev-parse --short HEAD)
+
 # This is the name that our final executable will have.
 # Change as needed.
 override OUTPUT := kernel
@@ -19,7 +21,7 @@ AR := x86_64-elf-ar
 LD := x86_64-elf-ld
 
 # User controllable C flags.
-CFLAGS := -Wpedantic -g -O2 -pipe -DPRINTF_INCLUDE_CONFIG_H
+CFLAGS := -Wpedantic -g -O2 -pipe -DPRINTF_INCLUDE_CONFIG_H -DCOMMIT_HASH=\"$(COMMIT_HASH)\"
 
 # User controllable C preprocessor flags. We set none by default.
 CPPFLAGS :=
