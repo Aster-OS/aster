@@ -11,6 +11,9 @@
 #include "arch/x86_64/idt/idt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "arch/x86_64/pit/pit.h"
+#include "dev/tty/debugcon.h"
+#include "dev/tty/flanterm.h"
+#include "dev/tty/serial.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "limine.h"
@@ -30,14 +33,14 @@ static volatile struct limine_bootloader_info_request bootloader_info_request = 
 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile struct limine_framebuffer_request fb_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
+static volatile struct limine_executable_address_request executable_addr_request = {
+    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
     .revision = 0
 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile struct limine_executable_address_request executable_addr_request = {
-    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
+static volatile struct limine_framebuffer_request fb_request = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST,
     .revision = 0
 };
 
@@ -83,18 +86,33 @@ void kmain(void) {
 
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
     struct limine_executable_address_response *executable_addr = executable_addr_request.response;
+    struct limine_framebuffer_response *fb = fb_request.response;
     uint64_t hhdm_offset = hhdm_request.response->offset;
     struct limine_memmap_response *memmap = memmap_request.response;
     struct limine_mp_response *mp = mp_request.response;
     struct limine_rsdp_response *rsdp = rsdp_request.response;
 
-    klog_init(fb_request.response->framebuffers[0], LOG_LVL_INFO, LOG_LVL_DEBUG);
-
     mp_init_bsp(mp);
+    cpuid_init();
+
+    struct tty_t *flanterm_tty = flanterm_tty_init(fb->framebuffers[0]);
+    flanterm_tty->lvl = KLOG_LVL_INFO;
+    klog_register_tty(flanterm_tty);
+
+    struct tty_t *serial_tty = serial_tty_init();
+    if (serial_tty != NULL) {
+        serial_tty->lvl = KLOG_LVL_DEBUG;
+        klog_register_tty(serial_tty);
+    }
+
+    struct tty_t *debugcon_tty = debugcon_tty_init();
+    if (debugcon_tty != NULL) {
+        debugcon_tty->lvl = KLOG_LVL_DEBUG;
+        klog_register_tty(debugcon_tty);
+    }
 
     klog_info("Aster booted by %s v%s", bootloader_info->name, bootloader_info->version);
 
-    cpuid_init();
     gdt_init();
     gdt_reload_segments();
     gdt_reload_tss();
