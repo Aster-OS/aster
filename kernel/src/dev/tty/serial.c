@@ -12,7 +12,7 @@ static bool is_transmit_empty() {
     return (inb(SERIAL_PORT + 5) & 0x20) >> 5;
 }
 
-void putchar(char c) {
+static void putchar(char c) {
     while (!is_transmit_empty());
     outb(SERIAL_PORT, c);
 }
