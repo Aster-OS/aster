@@ -11,6 +11,17 @@ void cpuid_init(void) {
     get_cpu()->cpuid_extended_max = eax;
 }
 
+bool cpu_get_brand_str(char *str) {
+    uint32_t *ptr = (uint32_t *) str;
+    if (get_cpu()->cpuid_extended_max >= 0x80000004) {
+        cpuid_no_leaf_check(0x80000002, 0, ptr,     ptr + 1, ptr + 2,  ptr + 3);
+        cpuid_no_leaf_check(0x80000003, 0, ptr + 4, ptr + 5, ptr + 6,  ptr + 7);
+        cpuid_no_leaf_check(0x80000004, 0, ptr + 8, ptr + 9, ptr + 11, ptr + 11);
+        return true;
+    }
+    return false;
+}
+
 bool cpu_set_int_state(bool enabled) {
     disable_interrupts();
     bool interrupts_prev_enabled = get_cpu()->interrupts_enabled;

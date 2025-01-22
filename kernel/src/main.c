@@ -113,6 +113,11 @@ void kmain(void) {
 
     klog_info("Aster booted by %s v%s", bootloader_info->name, bootloader_info->version);
 
+    char cpu_brand_str[48];
+    if (cpu_get_brand_str(cpu_brand_str)) {;
+        klog_info("Running on %.48s", cpu_brand_str);
+    }
+
     gdt_init();
     gdt_reload_segments();
     gdt_reload_tss();

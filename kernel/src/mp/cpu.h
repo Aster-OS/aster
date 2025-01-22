@@ -21,6 +21,7 @@ struct cpu_t {
 
 void cpuid_init(void);
 
+bool cpu_get_brand_str(char *str);
 bool cpu_set_int_state(bool enabled);
 
 struct cpu_t *get_cpu(void);
