@@ -2,7 +2,7 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "lib/string.h"
+#include "lib/strutil.h"
 #include "limine.h"
 #include "memory/vmm/vmm.h"
 
