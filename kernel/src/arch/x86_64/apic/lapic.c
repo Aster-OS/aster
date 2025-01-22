@@ -105,7 +105,7 @@ static inline uint32_t ns_to_lapic_ticks(uint64_t ns) {
 void lapic_init(void) {
     uint32_t edx, unused;
     if (!cpuid(0x1, 0x0, &unused, &unused, &unused, &edx) || (edx & (1 << 9)) == 0) {
-        kpanic("CPU #%llu, does not have a LAPIC", get_cpu()->id);
+        kpanic("CPU does not have a LAPIC", get_cpu()->id);
     }
 
     get_cpu()->lapic_addr = rdmsr(MSR_IA32_APIC_BASE) & 0xffffff000;
