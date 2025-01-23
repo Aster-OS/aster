@@ -1,6 +1,15 @@
 #include <stddef.h>
 
-#include "lib/printf/printf.h"
+#define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 0
+#define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
+
+// Compile nanoprintf in this translation unit
+#define NANOPRINTF_IMPLEMENTATION
+#include "lib/nanoprintf/nanoprintf.h"
 #include "lib/spinlock/spinlock.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
@@ -19,7 +28,8 @@ static struct tty_t *ttys[TTY_MAX_COUNT];
 static uint8_t tty_count;
 static enum klog_lvl curr_lvl;
 
-void _putchar(char c) {
+static void ttys_putchar(int c, void *ctx) {
+    (void) ctx;
     for (uint8_t i = 0; i < tty_count; i++) {
         struct tty_t *tty = ttys[i];
         if (curr_lvl <= tty->lvl) {
@@ -57,9 +67,9 @@ void klog(enum klog_lvl lvl, ...) {
 
     curr_lvl = lvl;
 
-    printf_(get_prefix(lvl));
-    vprintf_(fmt, va);
-    _putchar('\n');
+    npf_pprintf(ttys_putchar, NULL, get_prefix(lvl));
+    npf_vpprintf(ttys_putchar, NULL, fmt, va);
+    ttys_putchar('\n', NULL);
 
     for (size_t i = 0; i < tty_count; i++) {
         struct tty_t *tty = ttys[i];

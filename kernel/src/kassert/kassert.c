@@ -1,4 +1,3 @@
-#include "lib/printf/printf.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"

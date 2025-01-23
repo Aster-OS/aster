@@ -3,7 +3,7 @@
 #include "arch/x86_64/asm_wrappers.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "lib/printf/printf.h"
+#include "lib/nanoprintf/nanoprintf.h"
 #include "lib/spinlock/spinlock.h"
 #include "mp/mp.h"
 
@@ -45,7 +45,7 @@ static struct spinlock_t panic_lock;
 
 __attribute__((noreturn))
 static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va) {
-    vsnprintf_(kpanic_buf, sizeof(kpanic_buf), reason, va);
+    npf_vsnprintf(kpanic_buf, sizeof(kpanic_buf), reason, va);
     klog_fatal("KERNEL PANIC on CPU #%llu >>> %s", get_cpu()->id, kpanic_buf);
     do_stacktrace();
     if (ctx != NULL) print_int_ctx(ctx);
