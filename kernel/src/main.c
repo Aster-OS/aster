@@ -1,8 +1,4 @@
-#include <stdbool.h>
-#include <stddef.h>
-
 #include "acpi/acpi.h"
-#include "acpi/hpet.h"
 #include "acpi/madt.h"
 #include "arch/x86_64/apic/ioapic.h"
 #include "arch/x86_64/apic/lapic.h"
