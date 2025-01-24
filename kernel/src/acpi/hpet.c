@@ -40,6 +40,7 @@ struct __attribute__((packed)) hpet_t {
 
 static struct hpet_t *hpet;
 static uint64_t hpet_freq;
+static bool hpet_is_64_bit;
 
 void hpet_init(void) {
     struct hpet_table_t *hpet_table = (struct hpet_table_t *) acpi_find_table("HPET");
@@ -52,12 +53,12 @@ void hpet_init(void) {
     hpet = (struct hpet_t *) (hpet_table->address + vmm_get_hhdm_offset());
 
     uint64_t hpet_comparators_count = ((hpet->general_capabilities >> 8) & 0x1f) + 1;
-    bool hpet_64_bit_compatible = hpet->general_capabilities & (1 << 13);
     uint64_t hpet_period = hpet->general_capabilities >> 32;
-
     hpet_freq = 1000000000000000 / hpet_period;
+    hpet_is_64_bit = hpet->general_capabilities & (1 << 13);
+
     klog_debug("HPET comparators count: %llu", hpet_comparators_count);
-    klog_debug("HPET 64-bit compatible: %s", hpet_64_bit_compatible ? "yes" : "no");
+    klog_debug("HPET 64-bit compatible: %s", hpet_is_64_bit ? "yes" : "no");
     klog_debug("HPET frequency: %llu Hz", hpet_freq);
 
     hpet->general_config = 0x0; // disable main counter
@@ -80,9 +81,28 @@ uint64_t hpet_get_ns(void) {
 }
 
 void hpet_sleep_ns(uint64_t ns) {
-    uint64_t hpet_counter_target = hpet->main_counter_val + ns_to_ticks(ns);
-    while (hpet->main_counter_val < hpet_counter_target) {
+    uint64_t counter_target = hpet->main_counter_val + ns_to_ticks(ns);
+    if (hpet_is_64_bit) {
+        while (hpet->main_counter_val < counter_target) {
+            pause();
+        }
+    } else {
+        if (counter_target > UINT32_MAX) {
+            uint32_t main_counter_before_overflow = hpet->main_counter_val;
+            // wait for the main counter to wrap around
+            while (hpet->main_counter_val >= main_counter_before_overflow) {
+                pause();
+            }
+
+            uint64_t counter_target_after_overflow = counter_target - UINT32_MAX;
+            while (hpet->main_counter_val < counter_target_after_overflow) {
+                pause();
+            }
+        } else {
+            while (hpet->main_counter_val < counter_target) {
         pause();
+            }
+        }
     }
 }
 
