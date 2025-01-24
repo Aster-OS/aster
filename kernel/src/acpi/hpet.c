@@ -41,14 +41,9 @@ struct __attribute__((packed)) hpet_t {
 static struct hpet_t *hpet;
 static uint64_t hpet_freq;
 static bool hpet_is_64_bit;
+struct hpet_table_t *hpet_table;
 
 void hpet_init(void) {
-    struct hpet_table_t *hpet_table = (struct hpet_table_t *) acpi_find_table("HPET");
-    if (hpet_table == NULL) {
-        klog_debug("HPET not supported");
-        return;
-    }
-
     vmm_map_hhdm(hpet_table->address);
     hpet = (struct hpet_t *) (hpet_table->address + vmm_get_hhdm_offset());
 
@@ -100,12 +95,17 @@ void hpet_sleep_ns(uint64_t ns) {
             }
         } else {
             while (hpet->main_counter_val < counter_target) {
-        pause();
+                pause();
             }
         }
     }
 }
 
 bool hpet_is_supported(void) {
-    return acpi_find_table("HPET") != NULL;
+    static bool hpet_table_searched;
+    if (!hpet_table_searched) {
+        hpet_table = (struct hpet_table_t *) acpi_find_table("HPET");
+        hpet_table_searched = true;
+    }
+    return hpet_table != NULL;
 }
