@@ -10,6 +10,7 @@
 #include "dev/tty/debugcon.h"
 #include "dev/tty/flanterm.h"
 #include "dev/tty/serial.h"
+#include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "limine.h"
@@ -83,7 +84,7 @@ void kmain(void) {
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
     struct limine_executable_address_response *executable_addr = executable_addr_request.response;
     struct limine_framebuffer_response *fb = fb_request.response;
-    uint64_t hhdm_offset = hhdm_request.response->offset;
+    uint64_t hhdm_offset = hhdm_request.response != NULL ? hhdm_request.response->offset : 0;
     struct limine_memmap_response *memmap = memmap_request.response;
     struct limine_mp_response *mp = mp_request.response;
     struct limine_rsdp_response *rsdp = rsdp_request.response;
@@ -114,6 +115,14 @@ void kmain(void) {
     if (cpu_get_brand_str(cpu_brand_str)) {;
         klog_info("Running on %.48s", cpu_brand_str);
     }
+
+    kassert(bootloader_info != NULL);
+    kassert(executable_addr != NULL);
+    // framebuffer check is done above
+    kassert(hhdm_offset != 0);
+    kassert(memmap != NULL);
+    kassert(mp != NULL);
+    kassert(rsdp != NULL);
 
     gdt_init();
     gdt_reload_segments();
