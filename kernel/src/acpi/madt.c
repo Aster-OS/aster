@@ -6,7 +6,7 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "memory/kheap/kheap.h"
+#include "memory/kmalloc/kmalloc.h"
 #include "memory/vmm/vmm.h"
 
 struct __attribute__((packed)) madt_entry_t {
@@ -122,10 +122,10 @@ void madt_init(void) {
     klog_debug("MADT: Found %llu IOAPIC NMI %s", ioapic_nmi_count, ioapic_nmi_count == 1 ? "entry" : "entries");
     klog_debug("MADT: Found %llu LAPIC NMI %s", lapic_nmi_count, lapic_nmi_count == 1 ? "entry" : "entries");
 
-    ioapics = kheap_alloc(ioapic_count * sizeof(struct ioapic_t *));
-    ioapic_isos = kheap_alloc(ioapic_iso_count * sizeof(struct ioapic_iso_t *));
-    ioapic_nmis = kheap_alloc(ioapic_nmi_count * sizeof(struct ioapic_nmi_t *));
-    lapic_nmis = kheap_alloc(ioapic_nmi_count * sizeof(struct lapic_nmi_t *));
+    ioapics = kmalloc(ioapic_count * sizeof(struct ioapic_t *));
+    ioapic_isos = kmalloc(ioapic_iso_count * sizeof(struct ioapic_iso_t *));
+    ioapic_nmis = kmalloc(ioapic_nmi_count * sizeof(struct ioapic_nmi_t *));
+    lapic_nmis = kmalloc(ioapic_nmi_count * sizeof(struct lapic_nmi_t *));
 
     uint16_t ioapics_curr_index = 0;
     uint16_t ioapic_isos_curr_index = 0;

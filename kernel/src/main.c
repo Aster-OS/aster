@@ -14,7 +14,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "limine.h"
-#include "memory/kheap/kheap.h"
+#include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 #include "mp/mp.h"
@@ -134,7 +134,7 @@ void kmain(void) {
     pmm_init(memmap);
     pmm_print_memmap(memmap);
     vmm_init(memmap, executable_addr);
-    kheap_init();
+    kmalloc_init();
     acpi_init(rsdp->address);
     madt_init();
     lapic_init();

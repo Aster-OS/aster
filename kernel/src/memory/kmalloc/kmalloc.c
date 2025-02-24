@@ -4,7 +4,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
-#include "memory/kheap/kheap.h"
+#include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
@@ -118,7 +118,7 @@ static void freelist_remove_node(struct free_node_t *node_to_remove) {
     }
 }
 
-void *kheap_alloc(size_t sz) {
+void *kmalloc(size_t sz) {
     size_t alloc_sz = sz + sizeof(struct alloc_hdr_t);
     alloc_sz = align_sz(alloc_sz);
  
@@ -192,7 +192,7 @@ void *kheap_alloc(size_t sz) {
     return (void *) ((uintptr_t) alloc_hdr + sizeof(struct alloc_hdr_t));
 }
 
-void kheap_free(void *ptr) {
+void kfree(void *ptr) {
     uintptr_t ptr_addr = (uintptr_t) ptr;
 
     kassert(is_in_heap_bounds(ptr_addr));
@@ -283,7 +283,7 @@ void kheap_free(void *ptr) {
     }
 }
 
-void kheap_init(void) {
+void kmalloc_init(void) {
     for (uintptr_t virt = HEAP_START; virt < HEAP_END; virt += PAGE_SIZE) {
         phys_t phys = pmm_alloc(true);
         vmm_map_page(vmm_get_kernel_pagemap(), virt, phys, VMM_PAGE_WRITE | VMM_PAGE_NX);

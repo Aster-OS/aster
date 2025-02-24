@@ -4,7 +4,7 @@
 #include "arch/x86_64/idt/idt.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "memory/kheap/kheap.h"
+#include "memory/kmalloc/kmalloc.h"
 #include "memory/vmm/vmm.h"
 #include "mp/cpu.h"
 #include "mp/mp.h"
@@ -102,7 +102,7 @@ void mp_halt_all_cpus(void) {
 
 void mp_init(struct limine_mp_response *mp) {
     klog_debug("x2APIC enabled? %s", mp->flags & LIMINE_MP_X2APIC ? "yes" : "no");
-    cpus = (struct cpu_t **) kheap_alloc(mp->cpu_count * sizeof(struct cpu_t *));
+    cpus = (struct cpu_t **) kmalloc(mp->cpu_count * sizeof(struct cpu_t *));
 
     if (mp->cpu_count == 1) {
         klog_info("No APs to initialize");
@@ -119,7 +119,7 @@ void mp_init(struct limine_mp_response *mp) {
             cpu = &bsp;
             // bsp data was already initialized
         } else {
-            cpu = (struct cpu_t *) kheap_alloc(sizeof(struct cpu_t));
+            cpu = (struct cpu_t *) kmalloc(sizeof(struct cpu_t));
             init_cpu_data(cpu,
                             i, cpu_info->processor_id, cpu_info->lapic_id,
                             LAPIC_CALIBRATION_NS, mp->flags & LIMINE_MP_X2APIC);
