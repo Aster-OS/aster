@@ -202,7 +202,7 @@ void kfree(void *ptr) {
     struct free_node_t *to_free = (struct free_node_t *) to_free_addr;
 
     // double frees are considered a bug
-    kassert(get_flag(to_free, FLAG_IS_FREE));
+    kassert(!get_flag(to_free, FLAG_IS_FREE));
 
     uintptr_t next_addr = to_free_addr + get_sz(to_free);
     size_t *next = (size_t *) next_addr;
