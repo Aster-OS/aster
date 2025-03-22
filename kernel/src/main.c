@@ -92,7 +92,7 @@ void kernel_entry(void) {
     struct limine_executable_address_response *executable_addr = executable_addr_request.response;
     struct limine_executable_file_response *executable_file = executable_file_request.response;
     struct limine_framebuffer_response *fb = fb_request.response;
-    uint64_t hhdm_offset = hhdm_request.response != NULL ? hhdm_request.response->offset : 0;
+    struct limine_hhdm_response *hhdm = hhdm_request.response;
     struct limine_memmap_response *memmap = memmap_request.response;
     struct limine_mp_response *mp = mp_request.response;
     struct limine_rsdp_response *rsdp = rsdp_request.response;
@@ -128,7 +128,7 @@ void kernel_entry(void) {
     kassert(executable_addr != NULL);
     kassert(executable_file != NULL);
     // framebuffer check is done above
-    kassert(hhdm_offset != 0);
+    kassert(hhdm != 0);
     kassert(memmap != NULL);
     kassert(mp != NULL);
     kassert(rsdp != NULL);
@@ -139,7 +139,7 @@ void kernel_entry(void) {
     idt_init();
     idt_reload();
     interrupts_init();
-    vmm_set_hhdm_offset(hhdm_offset);
+    vmm_set_hhdm_offset(hhdm->offset);
     pmm_init(memmap);
     pmm_print_memmap(memmap);
     vmm_init(memmap, executable_addr);
