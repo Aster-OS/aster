@@ -4,6 +4,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/nanoprintf/nanoprintf.h"
+#include "lib/stacktrace/stacktrace.h"
 #include "lib/spinlock/spinlock.h"
 #include "mp/mp.h"
 
@@ -25,30 +26,16 @@ static void print_int_ctx(struct int_ctx_t *ctx) {
     klog_fatal("cs %04x ss %04x", ctx->cs, ctx->ss);
 }
 
-static void do_stacktrace(void) {
-    uint64_t rbp;
-    __asm__ volatile("mov %%rbp, %0" : "=m" (rbp));
-    klog_fatal("Stacktrace:");
-    uint64_t i = 0;
-    while (rbp != 0) {
-        uint64_t prev_rbp = *(uint64_t *) rbp;
-        uint64_t ret_addr = *((uint64_t *) rbp + 1);
-
-        klog_fatal("%llu %016llx", i, ret_addr);
-
-        rbp = prev_rbp;
-        i++;
-    }
-}
-
 static struct spinlock_t panic_lock;
 
 __attribute__((noreturn))
 static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va) {
     npf_vsnprintf(kpanic_buf, sizeof(kpanic_buf), reason, va);
     klog_fatal("KERNEL PANIC on CPU #%llu >>> %s", get_cpu()->id, kpanic_buf);
-    do_stacktrace();
     if (ctx != NULL) print_int_ctx(ctx);
+
+    stacktrace(0);
+
     mp_halt_all_cpus();
     while (1) halt();
 }
