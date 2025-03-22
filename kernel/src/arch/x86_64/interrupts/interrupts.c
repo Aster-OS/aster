@@ -5,6 +5,7 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/spinlock/spinlock.h"
 
 static const uint8_t PIC_HANDLED_IRQ_COUNT = 8;
 static const uint8_t ISA_IRQ_BASE = 0x30;
@@ -55,12 +56,19 @@ void interrupts_init(void) {
 }
 
 uint8_t interrupts_alloc_vector(void) {
+    static struct spinlock_t lock;
+    bool prev_int_state = cpu_set_int_state(false);
+    spinlock_acquire(&lock);
+
     if (last_allocated_vec == LAST_USABLE_VECTOR) {
         kpanic("All usable vectors are exhausted");
     }
 
     uint8_t ret = last_allocated_vec;
     last_allocated_vec++;
+
+    spinlock_release(&lock);
+    cpu_set_int_state(prev_int_state);
     return ret;
 }
 
