@@ -11,19 +11,19 @@
 static char kpanic_buf[256];
 
 static void print_int_ctx(struct int_ctx_t *ctx) {
-    klog_fatal("vector 0x%02x ec %x", ctx->vector, ctx->error_code);
-    klog_fatal("rax %016llx    rbx %016llx", ctx->rax, ctx->rbx);
-    klog_fatal("rcx %016llx    rdx %016llx", ctx->rcx, ctx->rdx);
-    klog_fatal("rdi %016llx    rsi %016llx", ctx->rdi, ctx->rsi);
-    klog_fatal("rbp %016llx    rsp %016llx", ctx->rbp, ctx->rsp);
-    klog_fatal("r8  %016llx    r9  %016llx", ctx->r8, ctx->r9);
-    klog_fatal("r10 %016llx    r11 %016llx", ctx->r10, ctx->r11);
-    klog_fatal("r12 %016llx    r13 %016llx", ctx->r12, ctx->r13);
-    klog_fatal("r14 %016llx    r15 %016llx", ctx->r14, ctx->r15);
-    klog_fatal("cr0 %016llx    cr2 %016llx", ctx->cr0, ctx->cr2);
-    klog_fatal("cr3 %016llx    cr4 %016llx", ctx->cr3, ctx->cr4);
-    klog_fatal("rip %016llx rflags %016llx", ctx->rip, ctx->rflags);
-    klog_fatal("cs %04x ss %04x", ctx->cs, ctx->ss);
+    klog_fatal("  vector 0x%02x ec 0x%x", ctx->vector, ctx->error_code);
+    klog_fatal("  rax %016llx    rbx %016llx", ctx->rax, ctx->rbx);
+    klog_fatal("  rcx %016llx    rdx %016llx", ctx->rcx, ctx->rdx);
+    klog_fatal("  rdi %016llx    rsi %016llx", ctx->rdi, ctx->rsi);
+    klog_fatal("  rbp %016llx    rsp %016llx", ctx->rbp, ctx->rsp);
+    klog_fatal("  r8  %016llx    r9  %016llx", ctx->r8, ctx->r9);
+    klog_fatal("  r10 %016llx    r11 %016llx", ctx->r10, ctx->r11);
+    klog_fatal("  r12 %016llx    r13 %016llx", ctx->r12, ctx->r13);
+    klog_fatal("  r14 %016llx    r15 %016llx", ctx->r14, ctx->r15);
+    klog_fatal("  cr0 %016llx    cr2 %016llx", ctx->cr0, ctx->cr2);
+    klog_fatal("  cr3 %016llx    cr4 %016llx", ctx->cr3, ctx->cr4);
+    klog_fatal("  rip %016llx rflags %016llx", ctx->rip, ctx->rflags);
+    klog_fatal("  cs %04x ss %04x", ctx->cs, ctx->ss);
 }
 
 static struct spinlock_t panic_lock;
@@ -32,9 +32,15 @@ __attribute__((noreturn))
 static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va) {
     npf_vsnprintf(kpanic_buf, sizeof(kpanic_buf), reason, va);
     klog_fatal("KERNEL PANIC on CPU #%llu >>> %s", get_cpu()->id, kpanic_buf);
-    if (ctx != NULL) print_int_ctx(ctx);
 
     stacktrace(0);
+
+    if (ctx != NULL) {
+        klog_fatal("Interrupt context provided");
+        print_int_ctx(ctx);
+    } else {
+        klog_fatal("No interrupt context provided");
+    }
 
     mp_halt_all_cpus();
     while (1) halt();
