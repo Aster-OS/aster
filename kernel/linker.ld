@@ -42,6 +42,8 @@ SECTIONS
         *(.text .text.*)
     } :text
 
+    __TEXT_MAX_ADDR = .;
+
     /* Move to the next memory page for .rodata */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 

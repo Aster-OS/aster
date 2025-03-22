@@ -13,6 +13,7 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/elf/symbols.h"
 #include "limine.h"
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
@@ -32,6 +33,12 @@ static volatile struct limine_bootloader_info_request bootloader_info_request = 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_executable_address_request executable_addr_request = {
     .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_executable_file_request executable_file_request = {
+    .id = LIMINE_EXECUTABLE_FILE_REQUEST,
     .revision = 0
 };
 
@@ -83,6 +90,7 @@ void kernel_entry(void) {
 
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
     struct limine_executable_address_response *executable_addr = executable_addr_request.response;
+    struct limine_executable_file_response *executable_file = executable_file_request.response;
     struct limine_framebuffer_response *fb = fb_request.response;
     uint64_t hhdm_offset = hhdm_request.response != NULL ? hhdm_request.response->offset : 0;
     struct limine_memmap_response *memmap = memmap_request.response;
@@ -118,6 +126,7 @@ void kernel_entry(void) {
 
     kassert(bootloader_info != NULL);
     kassert(executable_addr != NULL);
+    kassert(executable_file != NULL);
     // framebuffer check is done above
     kassert(hhdm_offset != 0);
     kassert(memmap != NULL);
@@ -135,6 +144,7 @@ void kernel_entry(void) {
     pmm_print_memmap(memmap);
     vmm_init(memmap, executable_addr);
     kmalloc_init();
+    symbols_init(executable_file->executable_file->address);
     acpi_init(rsdp->address);
     madt_init();
     lapic_init();
