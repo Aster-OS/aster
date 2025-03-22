@@ -7,3 +7,4 @@
 .vscode
 *.log
 image-name
+compile_commands.json
