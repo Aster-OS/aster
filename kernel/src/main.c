@@ -72,7 +72,7 @@ static volatile LIMINE_REQUESTS_START_MARKER
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER
 
-void kmain(void) {
+void kernel_entry(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         halt();
     }
