@@ -8,6 +8,7 @@
 #include "memory/vmm/vmm.h"
 #include "mp/cpu.h"
 #include "mp/mp.h"
+#include "sched/sched.h"
 
 static struct cpu_t bsp;
 static struct cpu_t **cpus;
@@ -71,12 +72,13 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
     lapic_init();
     lapic_timer_calibrate();
     cpu_set_int_state(true);
-
-    klog_info("CPU #%llu initialized", cpu->id);
+    sched_init_cpu();
 
     __atomic_fetch_add(&initialized_cpu_count, 1, __ATOMIC_SEQ_CST);
 
-    while (1) halt();
+    klog_info("CPU #%llu initialized", cpu->id);
+
+    sched_yield();
 }
 
 static void halt_cpu(struct int_ctx_t *ctx) {

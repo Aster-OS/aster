@@ -1,11 +1,10 @@
 #pragma once
 
-#include <stdint.h>
-#include "arch/x86_64/asm_wrappers.h"
+#include <stddef.h>
 
-struct spinlock_t {
-    uint8_t lock;
-};
+#include "arch/x86_64/asm_wrappers.h"
+#include "klog/klog.h"
+#include "lib/spinlock/spinlock_t.h"
 
 static inline void spinlock_acquire(struct spinlock_t *spinlock) {
     while (__atomic_test_and_set(&spinlock->lock, __ATOMIC_ACQUIRE)) {

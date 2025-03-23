@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #include "arch/x86_64/gdt/gdt.h"
+#include "sched/thread.h"
+#include "sched/thread_queue.h"
 
 struct cpu_t {
     uint64_t id;
@@ -17,6 +19,9 @@ struct cpu_t {
     bool interrupts_enabled;
     uint32_t cpuid_basic_max;
     uint32_t cpuid_extended_max;
+    struct thread_t *curr_thread;
+    struct thread_queue_t dead_queue;
+    struct thread_queue_t run_queue;
 };
 
 void cpuid_init(void);

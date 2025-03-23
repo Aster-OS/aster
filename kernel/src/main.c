@@ -19,6 +19,7 @@
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 #include "mp/mp.h"
+#include "sched/sched.h"
 #include "timer/timer.h"
 
 __attribute__((used, section(".limine_requests")))
@@ -78,6 +79,16 @@ static volatile LIMINE_REQUESTS_START_MARKER
 
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER
+
+static void *test_thread(void *arg) {
+    for (uint64_t i = 0; i < (uint64_t) arg; i++) {
+        if (i % 1000 == 0) {
+            klog_debug("Thread %03llu running on CPU %llu", get_cpu()->curr_thread->tid, get_cpu()->id);
+        }
+    }
+
+    return NULL;
+}
 
 void kernel_entry(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
@@ -152,7 +163,17 @@ void kernel_entry(void) {
     cpu_set_int_state(true);
     timer_init();
     lapic_timer_calibrate();
+    sched_init();
+    sched_init_cpu();
     mp_init(mp);
 
-    kpanic("End of kmain");
+    for (size_t i = 0; i < 10; i++) {
+        sched_new_kthread(test_thread, (void *) (uint64_t) 500000, NULL);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 400000, NULL);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 300000, NULL);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 200000, NULL);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 100000, NULL);
+    }
+
+    sched_yield();
 }
