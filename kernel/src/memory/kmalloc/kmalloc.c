@@ -4,6 +4,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
+#include "lib/spinlock/spinlock.h"
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
@@ -17,6 +18,8 @@ static const uint64_t CHUNK_SIZE_MASK = ~(HEAP_ALIGNMENT - 1);
 
 static const uint64_t FLAG_IS_FREE = 0x1;
 static const uint64_t FLAG_IS_PREV_FREE = 0x2;
+
+static struct spinlock_t kmalloc_lock;
 
 // free chunks are kept on a doubly linked freelist
 struct free_node_t {
@@ -134,6 +137,9 @@ void *kmalloc(size_t sz) {
     //   allocate the whole chunk
     // OR a free size of at least alloc_sz + FREE_CHUNK_MIN_SZ:
     //   split the chunk in two; allocate the first slice; add the second slice on the freelist
+
+    bool prev_int_state = cpu_set_int_state(false);
+    spinlock_acquire(&kmalloc_lock);
     
     struct free_node_t *free = freelist_head;
     size_t free_sz;
@@ -148,8 +154,9 @@ void *kmalloc(size_t sz) {
     }
 
     if (free == NULL) {
-        kpanic("Kheap out of memory");
-        return NULL;
+        spinlock_release(&kmalloc_lock);
+        cpu_set_int_state(prev_int_state);
+        kpanic("Kernel heap out of memory - failed to allocate 0x%llx bytes", sz);
     }
     
     // if a free chunk is found, remove it from the freelist
@@ -188,11 +195,17 @@ void *kmalloc(size_t sz) {
     unset_flag(alloc_hdr, FLAG_IS_FREE);
     // FLAG_IS_PREV_FREE is left unchanged
 
+    spinlock_release(&kmalloc_lock);
+    cpu_set_int_state(prev_int_state);
+
     // return the address after the allocation header
     return (void *) ((uintptr_t) alloc_hdr + sizeof(struct alloc_hdr_t));
 }
 
 void kfree(void *ptr) {
+    bool prev_int_state = cpu_set_int_state(false);
+    spinlock_acquire(&kmalloc_lock);
+
     uintptr_t ptr_addr = (uintptr_t) ptr;
 
     kassert(is_in_heap_bounds(ptr_addr));
@@ -281,6 +294,9 @@ void kfree(void *ptr) {
 
         freelist_remove_node((struct free_node_t *) next);
     }
+
+    spinlock_release(&kmalloc_lock);
+    cpu_set_int_state(prev_int_state);
 }
 
 void kmalloc_init(void) {
