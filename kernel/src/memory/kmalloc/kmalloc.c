@@ -4,6 +4,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
+#include "lib/list/dlist.h"
 #include "lib/spinlock/spinlock.h"
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
@@ -90,36 +91,15 @@ static inline bool is_in_heap_bounds(uintptr_t addr) {
     return addr >= HEAP_START && addr < HEAP_END;
 }
 
-static struct free_node_t *freelist_head;
+DLIST_INSTANCE(freelist, struct free_node_t, static);
 
 static void freelist_add_node(struct free_node_t *node_to_add) {
-    if (freelist_head == NULL) {
-        freelist_head = node_to_add;
-        freelist_head->prev = NULL;
-        freelist_head->next = NULL;
-        return;
-    }
-
-    node_to_add->prev = NULL;
-    node_to_add->next = freelist_head;
-    freelist_head->prev = node_to_add;
-    freelist_head = node_to_add;
+    DLIST_INSERT(freelist, node_to_add, prev, next);
 }
 
 static void freelist_remove_node(struct free_node_t *node_to_remove) {
     kassert(node_to_remove != NULL);
-
-    if (node_to_remove->prev != NULL) {
-        node_to_remove->prev->next = node_to_remove->next;
-    }
-
-    if (node_to_remove->next != NULL) {
-        node_to_remove->next->prev = node_to_remove->prev;
-    }
-
-    if (node_to_remove == freelist_head) {
-        freelist_head = freelist_head->next;
-    }
+    DLIST_DELETE(freelist, node_to_remove, prev, next);
 }
 
 void *kmalloc(size_t sz) {
@@ -142,7 +122,7 @@ void *kmalloc(size_t sz) {
     bool prev_int_state = cpu_set_int_state(false);
     spinlock_acquire(&kmalloc_lock);
     
-    struct free_node_t *free = freelist_head;
+    struct free_node_t *free = freelist.head;
     size_t free_sz;
     while (free != NULL) {
         free_sz = get_sz(free);
@@ -306,11 +286,13 @@ void kmalloc_init(void) {
         vmm_map_page(vmm_get_kernel_pagemap(), virt, phys, VMM_PAGE_WRITE | VMM_PAGE_NX);
     }
 
-    struct free_node_t *head = (struct free_node_t *) HEAP_START;
-    set_sz(head, align_sz(HEAP_SIZE));
-    set_flag(head, FLAG_IS_FREE);
-    unset_flag(head, FLAG_IS_PREV_FREE);
-    freelist_add_node(head);
+    DLIST_INIT(freelist);
+
+    struct free_node_t *first = (struct free_node_t *) HEAP_START;
+    set_sz(first, align_sz(HEAP_SIZE));
+    set_flag(first, FLAG_IS_FREE);
+    unset_flag(first, FLAG_IS_PREV_FREE);
+    freelist_add_node(first);
 
     klog_info("Heap initialized with %lluMiB of avl. memory", HEAP_SIZE >> 20);
 }
