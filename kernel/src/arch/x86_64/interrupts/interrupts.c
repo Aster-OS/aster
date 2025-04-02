@@ -6,6 +6,7 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/spinlock/spinlock.h"
+#include "mp/cpu.h"
 
 static const uint8_t PIC_HANDLED_IRQ_COUNT = 8;
 static const uint8_t ISA_IRQ_BASE = 0x30;

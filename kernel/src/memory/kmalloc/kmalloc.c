@@ -8,6 +8,7 @@
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
+#include "mp/cpu.h"
 
 static const uintptr_t HEAP_START = 0xffffffffd0000000;
 static const uintptr_t HEAP_SIZE = 0x200000;
