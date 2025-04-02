@@ -49,11 +49,11 @@ static inline void wr_cr3(uint64_t cr3) {
 }
 
 static inline void disable_interrupts(void) {
-    __asm__ volatile("cli");
+    __asm__ volatile("cli" : : : "memory");
 }
 
 static inline void enable_interrupts(void) {
-    __asm__ volatile("sti");
+    __asm__ volatile("sti" : : : "memory");
 }
 
 static inline void halt(void) {
