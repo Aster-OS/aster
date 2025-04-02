@@ -168,11 +168,11 @@ void kernel_entry(void) {
     mp_init(mp);
 
     for (size_t i = 0; i < 10; i++) {
-        sched_new_kthread(test_thread, (void *) (uint64_t) 500000, NULL);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 400000, NULL);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 300000, NULL);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 200000, NULL);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 100000, NULL);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 500000);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 400000);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 300000);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 200000);
+        sched_new_kthread(test_thread, (void *) (uint64_t) 100000);
     }
 
     sched_yield();

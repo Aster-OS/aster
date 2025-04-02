@@ -4,27 +4,111 @@
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/list/dlist.h"
+#include "lib/memutil.h"
 #include "lib/spinlock/spinlock.h"
 #include "lib/stacktrace/stacktrace.h"
+#include "lib/strutil.h"
 #include "memory/kmalloc/kmalloc.h"
+#include "memory/vmm/vmm.h"
 #include "mp/cpu.h"
 #include "mp/mp.h"
+#include "sched/proc.h"
 #include "sched/sched.h"
 #include "sched/thread.h"
 
 static struct {
-    tid_t val;
     struct spinlock_t lock;
-} last_tid;
+    pid_t pid;
+} pid_generator;
+
+static struct {
+    struct spinlock_t lock;
+    tid_t tid;
+} tid_generator;
 
 static const size_t KTHREAD_STACK_SIZE = 32768;
 static const uint64_t SCHED_TIMESLICE = 30000;
 static uint8_t sched_vec;
 
+static struct proc_t *proc_kernel;
+DLIST_INSTANCE_ATOMIC(procs, struct proc_t, static);
+
 static void *worker_free_dead_threads(void *arg);
 
 extern void sched_thread_entry(void);
 extern void sched_thread_switch(void **curr_sp, void **new_sp, bool prev_int_state);
+
+static pid_t new_pid(void) {
+    bool prev_int_state = cpu_set_int_state(false);
+    spinlock_acquire(&pid_generator.lock);
+
+    pid_t ret = pid_generator.pid;
+    pid_generator.pid++;
+
+    spinlock_release(&pid_generator.lock);
+    cpu_set_int_state(prev_int_state);
+
+    return ret;
+}
+
+static tid_t new_tid(void) {
+    bool prev_int_state = cpu_set_int_state(false);
+    spinlock_acquire(&tid_generator.lock);
+
+    tid_t ret = tid_generator.tid;
+    tid_generator.tid++;
+
+    spinlock_release(&tid_generator.lock);
+    cpu_set_int_state(prev_int_state);
+
+    return ret;
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+
+static void proc_delete(struct proc_t *proc) {
+    DLIST_DELETE_ATOMIC(procs, proc, prev, next);
+}
+
+#pragma GCC diagnostic pop
+
+static void proc_insert(struct proc_t *proc) {
+    DLIST_INSERT_ATOMIC(procs, proc, prev, next);
+}
+
+static void thread_queue_delete(struct thread_queue_t *queue, struct thread_t *thread, bool autolock) {
+    if (autolock) {
+        bool prev_int_state = cpu_set_int_state(false);
+        DLIST_DELETE_ATOMIC(*queue, thread, prev, next);
+        cpu_set_int_state(prev_int_state);
+    } else {
+        DLIST_DELETE(*queue, thread, prev, next);
+    }
+}
+
+static void thread_queue_insert(struct thread_queue_t *queue, struct thread_t *thread, bool autolock) {
+    if (autolock) {
+        bool prev_int_state = cpu_set_int_state(false);
+        DLIST_INSERT_ATOMIC(*queue, thread, prev, next);
+        cpu_set_int_state(prev_int_state);
+    } else {
+        DLIST_INSERT(*queue, thread, prev, next);
+    }
+}
+
+static void thread_queue_lock(struct thread_queue_t *queue) {
+    bool prev_int_state = cpu_set_int_state(false);
+    DLIST_LOCK(*queue);
+    cpu_set_int_state(prev_int_state);
+}
+
+static void thread_queue_unlock(struct thread_queue_t *queue) {
+    bool prev_int_state = cpu_set_int_state(false);
+    DLIST_UNLOCK(*queue);
+    cpu_set_int_state(prev_int_state);
+}
 
 static struct thread_t *search_ready_thread(struct thread_t *start) {
     struct thread_t *thread = start;
@@ -80,19 +164,8 @@ static struct cpu_t *pick_cpu(void) {
     return cpu;
 }
 
-struct thread_t *sched_new_kthread(void *(*start)(void *), void *arg, struct cpu_t *cpu) {
+static struct thread_t *create_thread(void *(*start)(void *), void *arg) {
     struct thread_t *thread = (struct thread_t *) kmalloc(sizeof(struct thread_t));
-
-    thread->state = THREAD_STATE_READY;
-
-    bool prev_int_state = cpu_set_int_state(false);
-    spinlock_acquire(&last_tid.lock);
-
-    thread->tid = last_tid.val;
-    last_tid.val++;
-
-    spinlock_release(&last_tid.lock);
-    cpu_set_int_state(prev_int_state);
 
     void *kstack = kmalloc(KTHREAD_STACK_SIZE);
     uintptr_t kstack_bottom = (uintptr_t) kstack + KTHREAD_STACK_SIZE;
@@ -109,20 +182,46 @@ struct thread_t *sched_new_kthread(void *(*start)(void *), void *arg, struct cpu
     *(--sp) = 0; // r15
 
     thread->kstack = kstack;
+    thread->parent = proc_kernel;
+    thread->state = THREAD_STATE_READY;
     thread->sp = sp;
+    thread->tid = new_tid();
 
-    struct cpu_t *picked_cpu;
-    if (cpu) {
-        picked_cpu = cpu;
-    } else {
-        picked_cpu = pick_cpu();
-    }
-
-    thread_queue_insert(&picked_cpu->run_queue, thread, true);
-
-    klog_info("Thread %llu scheduled on CPU %llu", thread->tid, picked_cpu->id);
+    proc_threads_add(thread->parent, thread);
 
     return thread;
+}
+
+struct proc_t *sched_new_proc(const char *name, phys_t pagemap) {
+    if (!pagemap) {
+        kpanic("Creating process page tables is not implemented");
+    }
+
+    struct proc_t *proc = kmalloc(sizeof(struct proc_t));
+    size_t name_strlen = strlen(name);
+    proc->name = kmalloc(name_strlen);
+    memcpy(proc->name, name, name_strlen);
+    proc->pagemap = pagemap;
+    proc->pid = new_pid();
+    DLIST_INIT_ATOMIC(proc->threads);
+
+    klog_info("Created process \"%s\" with PID %llu", proc->name, proc->pid);
+
+    proc_insert(proc);
+
+    return proc;
+}
+
+struct thread_t *sched_new_kthread(void *(*start)(void *), void *arg) {
+    struct thread_t *thread = create_thread(start, arg);
+    struct cpu_t *picked_cpu = pick_cpu();
+    thread_queue_insert(&picked_cpu->run_queue, thread, true);
+    return thread;
+}
+
+struct thread_t *sched_new_thread(struct proc_t *parent, void *(*start)(void *), void *arg) {
+    (void) parent, (void) start, (void) arg;
+    kpanic("User threads are not implemented");
 }
 
 static void sched_int_handler(struct int_ctx_t *ctx) {
@@ -134,18 +233,21 @@ static void sched_int_handler(struct int_ctx_t *ctx) {
 void sched_init(void) {
     sched_vec = interrupts_alloc_vector();
     interrupts_set_handler(sched_vec, sched_int_handler);
+
+    DLIST_INIT_ATOMIC(procs);
+    proc_kernel = sched_new_proc("kernel", vmm_get_kernel_pagemap());
+
     klog_info("Scheduler initialized");
 }
 
 void sched_init_cpu(void) {
     struct cpu_t *cpu = get_cpu();
     cpu->curr_thread = NULL;
-    cpu->dead_queue.head = NULL;
-    cpu->dead_queue.lock = SPINLOCK_INIT;
-    cpu->run_queue.head = NULL;
-    cpu->run_queue.lock = SPINLOCK_INIT;
+    DLIST_INIT_ATOMIC(cpu->dead_queue);
+    DLIST_INIT_ATOMIC(cpu->run_queue);
 
-    sched_new_kthread(worker_free_dead_threads, NULL, cpu);
+    struct thread_t *worker = create_thread(worker_free_dead_threads, NULL);
+    thread_queue_insert(&cpu->run_queue, worker, true);
 }
 
 void sched_thread_exit(void *thread_returned) {
@@ -155,10 +257,9 @@ void sched_thread_exit(void *thread_returned) {
     struct thread_t *curr = cpu->curr_thread;
     curr->state = THREAD_STATE_DEAD;
 
+    proc_threads_remove(curr->parent, curr);
     thread_queue_delete(&cpu->run_queue, curr, true);
     thread_queue_insert(&cpu->dead_queue, curr, true);
-
-    klog_info("Thread %llu exited", curr->tid);
 
     sched_yield();
 

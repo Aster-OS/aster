@@ -4,8 +4,10 @@
 #include <stdint.h>
 
 #include "arch/x86_64/gdt/gdt.h"
+#include "lib/list/dlist.h"
 #include "sched/thread.h"
-#include "sched/thread_queue.h"
+
+DLIST_TYPE_ATOMIC(thread_queue_t, struct thread_t);
 
 struct cpu_t {
     uint64_t id;
