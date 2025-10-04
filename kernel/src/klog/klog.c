@@ -67,8 +67,9 @@ void klog(enum klog_lvl lvl, ...) {
 
     curr_lvl = lvl;
 
-    npf_pprintf(ttys_putchar, NULL, get_prefix(lvl));
+    npf_pprintf(ttys_putchar, NULL, "%s", get_prefix(lvl));
     npf_vpprintf(ttys_putchar, NULL, fmt, va);
+    ttys_putchar('\r', NULL);
     ttys_putchar('\n', NULL);
 
     for (size_t i = 0; i < tty_count; i++) {

@@ -8,7 +8,7 @@ static struct tty_t serial_tty;
 
 static const uint16_t SERIAL_PORT = 0x3f8;
 
-static bool is_transmit_empty() {
+static bool is_transmit_empty(void) {
     return (inb(SERIAL_PORT + 5) & 0x20) >> 5;
 }
 
