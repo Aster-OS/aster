@@ -42,6 +42,8 @@ static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va
         klog_fatal("No interrupt context provided");
     }
 
+    // TODO halt other CPUs (and wait)
+    // TODO rename mp_get_cpus_count()
     mp_halt_all_cpus();
     while (1) halt();
 }

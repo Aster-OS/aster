@@ -32,6 +32,8 @@ sched_thread_entry:
 .global sched_thread_switch
 sched_thread_switch:
     # skip saving state if current sp is NULL
+    # pass dummy curr_sp or dummy thread to avoid
+    # checking this upon every ctx switch
     test %rdi, %rdi
     jz skip_thread_save
 

@@ -261,6 +261,8 @@ void sched_thread_exit(void *thread_returned) {
     thread_queue_delete(&cpu->run_queue, curr, true);
     thread_queue_insert(&cpu->dead_queue, curr, true);
 
+    klog_info("Thread %d exited from CPU %d", curr->tid, cpu->id);
+
     sched_yield();
 
     kpanic("Dead thread scheduled");

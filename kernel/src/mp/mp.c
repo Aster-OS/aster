@@ -97,6 +97,7 @@ void mp_halt_all_cpus(void) {
         uint8_t halt_cpu_vector = interrupts_alloc_vector();
         interrupts_set_handler(halt_cpu_vector, halt_cpu);
         lapic_ipi_all(halt_cpu_vector);
+        // TODO questionable choice
         cpu_set_int_state(true);
     }
     while (1) halt();

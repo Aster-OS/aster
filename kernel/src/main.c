@@ -82,9 +82,9 @@ static volatile LIMINE_REQUESTS_END_MARKER
 
 static void *test_thread(void *arg) {
     for (uint64_t i = 0; i < (uint64_t) arg; i++) {
-        if (i % 1000 == 0) {
-            klog_debug("Thread %03llu running on CPU %llu", get_cpu()->curr_thread->tid, get_cpu()->id);
-        }
+        // if (i % 1000 == 0) {
+        //     klog_debug("Thread %03llu running on CPU %llu", get_cpu()->curr_thread->tid, get_cpu()->id);
+        // }
     }
 
     return NULL;
@@ -128,7 +128,7 @@ void kernel_entry(void) {
     }
 
     klog_info("Aster booted by %s v%s", bootloader_info->name, bootloader_info->version);
-    klog_info("Built at commit %s", COMMIT_HASH);
+    klog_info("Built at commit \"%s\"", COMMIT_HASH);
 
     char cpu_brand_str[48];
     if (cpu_get_brand_str(cpu_brand_str)) {;
@@ -167,7 +167,7 @@ void kernel_entry(void) {
     sched_init_cpu();
     mp_init(mp);
 
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 3; i++) {
         sched_new_kthread(test_thread, (void *) (uint64_t) 500000);
         sched_new_kthread(test_thread, (void *) (uint64_t) 400000);
         sched_new_kthread(test_thread, (void *) (uint64_t) 300000);
