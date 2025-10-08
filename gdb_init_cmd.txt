@@ -1,3 +1,0 @@
-set tcp connect-timeout unlimited
-set tcp auto-retry on
-target remote localhost:1234

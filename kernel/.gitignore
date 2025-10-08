@@ -1,5 +1,8 @@
-/freestnd-c-hdrs-0bsd
-/cc-runtime*
-/src/limine.h
-/bin
-/obj
+/.cache
+/bin-*
+/cc-runtime
+/freestnd-c-hdrs
+/limine-protocol
+/obj-*
+.deps-obtained
+compile_commands.json

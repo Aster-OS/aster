@@ -2,4 +2,5 @@
 
 set -euo pipefail
 
-python qemu-runner.py "$@"
+./build.sh
+./run.sh "$@"
