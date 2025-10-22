@@ -178,7 +178,15 @@ void *kmalloc(size_t sz) {
     spin_unlock_irqrestore(&kmalloc_lock);
 
     // return the address after the allocation header
-    return (void *) ((uintptr_t) alloc_hdr + sizeof(struct alloc_hdr_t));
+    void *ret = (void *) ((uintptr_t) alloc_hdr + sizeof(struct alloc_hdr_t));
+
+    // zero out memory for security reasons
+    uint8_t *p = ret;
+    for (size_t i = 0; i < sz; i++) {
+        p[i] = 0;
+    }
+
+    return ret;
 }
 
 void kfree(void *ptr) {
