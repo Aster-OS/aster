@@ -1,6 +1,6 @@
 #include "lib/strutil.h"
 
-int strcmp(const char *s1, const char *s2) {
+int kstrcmp(const char *s1, const char *s2) {
     const unsigned char *p1 = (const unsigned char *) s1;
     const unsigned char *p2 = (const unsigned char *) s2;
 

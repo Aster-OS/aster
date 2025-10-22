@@ -1,6 +1,5 @@
 #include <stddef.h>
 
-#include "klog/klog.h"
 #include "lib/elf/elf.h"
 #include "lib/strutil.h"
 

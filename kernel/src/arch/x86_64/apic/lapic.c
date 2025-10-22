@@ -1,6 +1,5 @@
 #include "acpi/madt.h"
 #include "arch/x86_64/apic/lapic.h"
-#include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "arch/x86_64/msr.h"
 #include "klog/klog.h"
@@ -70,23 +69,28 @@ enum lapic_icr_shorthand {
     ICR_SHORTHAND_ALL_NO_SELF = 0xc0000
 };
 
+static const uint64_t LAPIC_CALIBRATION_NS = 100000;
+static const uint8_t LAPIC_SPURIOUS_VEC = 0xf0;
+
+static uint64_t lapic_addr;
+
 static inline uint16_t reg_to_x2apic_msr(uint16_t reg) {
     return (reg >> 4) + 0x800;
 }
 
-static inline uint32_t lapic_rd(uint16_t reg) {
-    if (get_cpu()->x2apic_enabled) {
+static inline uint32_t lapic_read(uint16_t reg) {
+    if (mp_x2apic_enabled()) {
         return rdmsr(reg_to_x2apic_msr(reg));
     } else {
-        return *(volatile uint32_t *) (get_cpu()->lapic_addr + reg + vmm_get_hhdm_offset());
+        return *(volatile uint32_t *) (lapic_addr + reg + vmm_get_hhdm_offset());
     }
 }
 
-static inline void lapic_wr(uint16_t reg, uint32_t val) {
-    if (get_cpu()->x2apic_enabled) {
+static inline void lapic_write(uint16_t reg, uint32_t val) {
+    if (mp_x2apic_enabled()) {
         wrmsr(reg_to_x2apic_msr(reg), val);
     } else {
-        *(volatile uint32_t *) (get_cpu()->lapic_addr + reg + vmm_get_hhdm_offset()) = val;
+        *(volatile uint32_t *) (lapic_addr + reg + vmm_get_hhdm_offset()) = val;
     }
 }
 
@@ -95,26 +99,26 @@ static void lapic_spurious_handler(struct int_ctx_t *ctx) {
     klog_debug("LAPIC spurious interrupt");
 }
 
-// IDT vectors >= 0xf0 are reserved, so this vector can be used safely
-static const uint8_t LAPIC_SPURIOUS_VEC = 0xf0;
-
 static inline uint32_t ns_to_lapic_ticks(uint64_t ns) {
-    return ns * get_cpu()->lapic_calibration_ticks / get_cpu()->lapic_calibration_ns;
+    return ns * get_cpu()->lapic_calibration_ticks / LAPIC_CALIBRATION_NS;
 }
 
 void lapic_init(void) {
-    uint32_t edx, unused;
-    if (!cpuid(0x1, 0x0, &unused, &unused, &unused, &edx) || (edx & (1 << 9)) == 0) {
-        kpanic("CPU does not have a LAPIC", get_cpu()->id);
-    }
-
-    get_cpu()->lapic_addr = rdmsr(MSR_IA32_APIC_BASE) & 0xffffff000;
-    vmm_map_hhdm(get_cpu()->lapic_addr);
+    lapic_addr = rdmsr(MSR_IA32_APIC_BASE) & 0xffffff000;
+    vmm_map_hhdm(lapic_addr);
 
     interrupts_set_handler(LAPIC_SPURIOUS_VEC, lapic_spurious_handler);
+}
+
+void lapic_init_cpu(void) {
+    uint32_t edx, unused;
+    if (!cpuid(0x1, 0x0, &unused, &unused, &unused, &edx) || (edx & (1 << 9)) == 0) {
+        kpanic("CPU does not have a LAPIC");
+    }
+
     lapic_timer_stop();
-    lapic_wr(REG_SPURIOUS, (1 << 8) | LAPIC_SPURIOUS_VEC);
-    lapic_wr(REG_TIMER_DIV, 0x3); // divisor 16
+    lapic_write(REG_SPURIOUS, (1 << 8) | LAPIC_SPURIOUS_VEC);
+    lapic_write(REG_TIMER_DIV, 0x3); // divisor 16
 
     struct lapic_nmi_t **lapic_nmis = madt_get_lapic_nmis();
     uint64_t lapic_nmi_count = madt_get_lapic_nmi_count();
@@ -131,28 +135,30 @@ void lapic_init(void) {
             // trigger mode is always edge sensitive for NMI delivery mode
 
             if (lapic_nmi->lint == 0) {
-                lapic_wr(REG_LVT_LINT0, lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
+                lapic_write(REG_LVT_LINT0, lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
             } else if (lapic_nmi->lint == 1) {
-                lapic_wr(REG_LVT_LINT1, lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
+                lapic_write(REG_LVT_LINT1, lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
             }
         }
     }
 
-    klog_info("CPU #%llu LAPIC initialized", get_cpu()->id);
+    klog_info("CPU %llu LAPIC initialized", get_cpu()->id);
 }
 
 void lapic_ipi(uint8_t vec, uint32_t dest_lapic_id) {
-    if (get_cpu()->x2apic_enabled) {
+    if (mp_x2apic_enabled()) {
         uint64_t icr = ((uint64_t) dest_lapic_id << 32) | LAPIC_DELIV_MODE_FIXED | vec;
-        wrmsr(reg_to_x2apic_msr(REG_ICR_LOW), icr); // ICR is 64-bits in x2APIC mode
+        // ICR is 64 bits in x2APIC mode
+        wrmsr(reg_to_x2apic_msr(REG_ICR_LOW), icr);
     } else {
         uint64_t icr = ((uint64_t) dest_lapic_id << 56) | LAPIC_DELIV_MODE_FIXED | vec;
-        lapic_wr(REG_ICR_HIGH, icr >> 32);
-        lapic_wr(REG_ICR_LOW, icr & 0xffff);
+        lapic_write(REG_ICR_HIGH, icr >> 32);
+        lapic_write(REG_ICR_LOW, icr & 0xffff);
     }
 }
 
 void lapic_ipi_all(uint8_t vec) {
+    bool old_int_state = interrupts_set(false);
     struct cpu_t *this_cpu = get_cpu();
     struct cpu_t **cpus = mp_get_cpus();
     uint64_t cpu_count = mp_get_cpu_count();
@@ -162,11 +168,12 @@ void lapic_ipi_all(uint8_t vec) {
             lapic_ipi(vec, cpu->lapic_id);
         }
     }
-    
     lapic_ipi(vec, this_cpu->lapic_id);
+    interrupts_set(old_int_state);
 }
 
 void lapic_ipi_all_no_self(uint8_t vec) {
+    bool old_int_state = interrupts_set(false);
     struct cpu_t *this_cpu = get_cpu();
     struct cpu_t **cpus = mp_get_cpus();
     uint64_t cpu_count = mp_get_cpu_count();
@@ -176,49 +183,50 @@ void lapic_ipi_all_no_self(uint8_t vec) {
             lapic_ipi(vec, cpu->lapic_id);
         }
     }
+    interrupts_set(old_int_state);
 }
 
 void lapic_ipi_self(uint8_t vec) {
-    if (get_cpu()->x2apic_enabled) {
+    if (mp_x2apic_enabled()) {
         wrmsr(X2APIC_REG_SELF_IPI, vec);
     } else {
         uint64_t icr = ICR_SHORTHAND_SELF | LAPIC_DELIV_MODE_FIXED | vec;
-        lapic_wr(REG_ICR_HIGH, icr >> 32);
-        lapic_wr(REG_ICR_LOW, icr & 0xffff);
+        lapic_write(REG_ICR_HIGH, icr >> 32);
+        lapic_write(REG_ICR_LOW, icr & 0xffff);
     }
 }
 
 void lapic_send_eoi(void) {
-    lapic_wr(REG_EOI, 0);
+    lapic_write(REG_EOI, 0);
 }
 
-void lapic_timer_calibrate() {
-    uint32_t calibration_start_ticks = UINT32_MAX;
-    uint64_t calibration_ns = get_cpu()->lapic_calibration_ns;
-    lapic_wr(REG_TIMER_INIT_COUNT, calibration_start_ticks);
-    timer_sleep_ns(calibration_ns);
-    uint32_t calibration_end_ticks = lapic_rd(REG_TIMER_CURR_COUNT);
-
+void lapic_timer_calibrate(void) {
+    interrupts_set(true);
+    uint32_t start_ticks = UINT32_MAX;
+    lapic_write(REG_TIMER_INIT_COUNT, start_ticks);
+    timer_sleep_ns(LAPIC_CALIBRATION_NS);
+    uint32_t end_ticks = lapic_read(REG_TIMER_CURR_COUNT);
     lapic_timer_stop();
+    interrupts_set(false);
 
-    uint32_t calibration_ticks = calibration_start_ticks - calibration_end_ticks;
-    get_cpu()->lapic_calibration_ticks = calibration_ticks;
+    get_cpu()->lapic_calibration_ticks = start_ticks - end_ticks;
 
-    klog_info("CPU #%llu LAPIC timer calibrated: %llu ticks in %llu ns", get_cpu()->id, calibration_ticks, calibration_ns);
+    klog_info("CPU %llu LAPIC timer calibrated: %llu ticks in %llu ns",
+            get_cpu()->id, get_cpu()->lapic_calibration_ticks, LAPIC_CALIBRATION_NS);
 }
 
 void lapic_timer_one_shot(uint64_t ns, uint8_t vec) {
     uint32_t ticks = ns_to_lapic_ticks(ns);
-    lapic_wr(REG_TIMER_INIT_COUNT, ticks);
-    lapic_wr(REG_LVT_TIMER, LVT_TIMER_ONE_SHOT | vec);
+    lapic_write(REG_TIMER_INIT_COUNT, ticks);
+    lapic_write(REG_LVT_TIMER, LVT_TIMER_ONE_SHOT | vec);
 }
 
 void lapic_timer_periodic(uint64_t ns, uint8_t vec) {
     uint32_t ticks = ns_to_lapic_ticks(ns);
-    lapic_wr(REG_TIMER_INIT_COUNT, ticks);
-    lapic_wr(REG_LVT_TIMER, LVT_TIMER_PERIODIC | vec);
+    lapic_write(REG_TIMER_INIT_COUNT, ticks);
+    lapic_write(REG_LVT_TIMER, LVT_TIMER_PERIODIC | vec);
 }
 
 void lapic_timer_stop(void) {
-    lapic_wr(REG_TIMER_INIT_COUNT, 0);
+    lapic_write(REG_TIMER_INIT_COUNT, 0);
 }

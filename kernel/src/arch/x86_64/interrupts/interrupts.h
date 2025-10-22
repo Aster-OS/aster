@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 
-#define PIC1_IRQ_BASE 0x20
-#define PIC2_IRQ_BASE 0x28
-#define ISA_IRQ_COUNT 16
+#define ISA_IRQ_MAX 16
+#define PIC1_IRQ_OFFSET 0x20
+#define PIC2_IRQ_OFFSET 0x28
 
 struct __attribute__((packed)) int_ctx_t {
     uint64_t cr4, cr3, cr2, cr0;

@@ -19,7 +19,11 @@ static size_t funcs_count;
 extern unsigned char __TEXT_MAX_ADDR[];
 
 char *symbols_get_func_name(void *addr) {
-    if (!symbols_initialized || addr < funcs[0].addr || (uintptr_t) addr >= (uintptr_t) &__TEXT_MAX_ADDR) {
+    if (!symbols_initialized) {
+        return "*uninitialized*";
+    }
+
+    if (addr < funcs[0].addr || (uintptr_t) addr >= (uintptr_t) &__TEXT_MAX_ADDR) {
         goto unknown_func;
     }
 
@@ -34,7 +38,7 @@ char *symbols_get_func_name(void *addr) {
     }
 
 unknown_func:
-    return "unknown function";
+    return "*unknown*";
 }
 
 void symbols_init(void *file) {
@@ -82,5 +86,6 @@ void symbols_init(void *file) {
     }
 
     symbols_initialized = true;
+
     klog_info("Symbols initialized");
 }

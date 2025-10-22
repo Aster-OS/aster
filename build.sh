@@ -2,4 +2,4 @@
 
 set -euo pipefail
 
-bear --output kernel/compile_commands.json -- make
+bear --append --output kernel/compile_commands.json -- make all -j$(nproc)

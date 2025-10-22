@@ -1,6 +1,4 @@
-#include <stddef.h>
-
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
 #include "dev/tty/debugcon.h"
 
 static struct tty_t debugcon_tty;

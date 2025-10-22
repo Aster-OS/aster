@@ -2,7 +2,7 @@
 
 #include "acpi/acpi.h"
 #include "acpi/hpet.h"
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
 #include "klog/klog.h"
 #include "memory/vmm/vmm.h"
 

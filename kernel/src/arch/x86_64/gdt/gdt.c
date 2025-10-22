@@ -10,11 +10,11 @@ static const uint8_t GDT_DESC_TYPE_CODE = 1 << 7 | 1 << 4 | 1 << 3 | 1 << 1 | 1 
 static const uint8_t GDT_DESC_TYPE_DATA = 1 << 7 | 1 << 4 | 1 << 1 | 1 << 0;
 static const uint8_t GDT_DESC_TYPE_TSS_AVL = 1 << 7 | 1 << 3 | 1 << 0;
 
-static inline uint8_t gdt_desc_type_dpl(uint8_t dpl) {
+static const uint8_t GDT_DESC_FLAG_LONG_MODE = 1 << 5;
+
+static inline uint8_t gdt_dpl(uint8_t dpl) {
     return dpl << 5;
 }
-
-static uint8_t GDT_DESC_FLAG_LONG_MODE = 1 << 5;
 
 struct __attribute__((packed)) seg_descriptor_t {
     uint16_t limit_0_15;
@@ -43,12 +43,12 @@ struct __attribute__((packed)) gdtr_t {
 
 // null, kcode, kdata, ucode, udata, tss (counts as 2 entries)
 static __attribute__((aligned(8))) struct seg_descriptor_t gdt[7];
-static uint8_t gdt_seg_descs_end;
+static uint8_t gdt_index;
 
 static struct gdtr_t gdtr;
 
 static void gdt_add_seg_descriptor(uint8_t type, uint8_t flags) {
-    struct seg_descriptor_t *seg_desc = &gdt[gdt_seg_descs_end];
+    struct seg_descriptor_t *seg_desc = &gdt[gdt_index];
 
     seg_desc->limit_0_15 = 0;
     seg_desc->base_0_15 = 0;
@@ -57,12 +57,11 @@ static void gdt_add_seg_descriptor(uint8_t type, uint8_t flags) {
     seg_desc->limit_16_19_and_flags = flags;
     seg_desc->base_24_31 = 0;
 
-    gdt_seg_descs_end++;
+    gdt_index++;
 }
 
 static void gdt_set_tss_descriptor(struct tss_t *tss) {
-    // place the TSS descriptor after the segment descriptors
-    struct tss_descriptor_t *tss_desc = (struct tss_descriptor_t *) &gdt[gdt_seg_descs_end];
+    struct tss_descriptor_t *tss_desc = (struct tss_descriptor_t *) &gdt[gdt_index];
 
     uint64_t tss_base = (uint64_t) tss;
     uint32_t tss_limit = sizeof(struct tss_t) - 1;
@@ -79,10 +78,10 @@ static void gdt_set_tss_descriptor(struct tss_t *tss) {
 
 void gdt_init(void) {
     gdt_add_seg_descriptor(0, 0);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_desc_type_dpl(0), GDT_DESC_FLAG_LONG_MODE);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_desc_type_dpl(0), GDT_DESC_FLAG_LONG_MODE);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_desc_type_dpl(3), GDT_DESC_FLAG_LONG_MODE);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_desc_type_dpl(3), GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_dpl(0), GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_dpl(0), GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_dpl(3), GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_dpl(3), GDT_DESC_FLAG_LONG_MODE);
 
     gdtr.base = (uint64_t) &gdt,
     gdtr.limit = sizeof(gdt) - 1;
@@ -110,14 +109,14 @@ void gdt_reload_segments(void) {
 }
 
 void gdt_reload_tss(void) {
-    // not touched by IRQs
-    static struct spinlock_t tss_desc_lock;
-    spinlock_acquire(&tss_desc_lock);
+    // not touched by interrupts
+    static struct spinlock_t tss_desc_lock = SPINLOCK_STATIC_INIT;
+    spin_lock(&tss_desc_lock);
 
     get_cpu()->tss.iopb_offset = sizeof(struct tss_t);
     gdt_set_tss_descriptor(&get_cpu()->tss);
 
     __asm__ volatile("ltr %%ax;" : : "a" (GDT_SELECTOR_TSS));
 
-    spinlock_release(&tss_desc_lock);
+    spin_unlock(&tss_desc_lock);
 }

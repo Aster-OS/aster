@@ -1,4 +1,3 @@
-#include "arch/x86_64/asm_wrappers.h"
 #include "arch/x86_64/idt/idt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "arch/x86_64/pic/pic.h"
@@ -6,15 +5,24 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/spinlock/spinlock.h"
-#include "mp/cpu.h"
 
-static const uint8_t PIC_HANDLED_IRQ_COUNT = 8;
-static const uint8_t ISA_IRQ_BASE = 0x30;
-static const uint8_t FIRST_USABLE_VECTOR = 0x40;
-static const uint8_t LAST_USABLE_VECTOR = 0xef;
+// 0x00 - 0x1f | CPU exceptions
+// 0x20 - 0x27 | PIC 1 IRQs [ignored]
+// 0x28 - 0x2f | PIC 2 IRQs [ignored]
+// 0x30 - 0x3f | ISA IRQs
+// 0x40 - 0xef | Usable
+// 0xf0 - 0xff | Reserved for kernel use
+// 0xf0 - LAPIC spurious interrupt
 
-static uint16_t last_allocated_vec = FIRST_USABLE_VECTOR;
+static const uint8_t IRQ_COUNT_PER_PIC = 8;
+static const uint8_t ISA_IRQ_OFFSET = 0x30;
 
+static const uint8_t USABLE_VECTORS_START = 0x40;
+static const uint8_t USABLE_VECTORS_END   = 0xef;
+
+static uint16_t curr_free_vector = USABLE_VECTORS_START;
+
+// interrupt handlers shared across all CPUs
 static int_handler_t int_handlers[IDT_MAX_DESCRIPTORS];
 
 static void exception_handler(struct int_ctx_t *ctx) {
@@ -34,7 +42,7 @@ void common_int_handler(struct int_ctx_t *ctx) {
 }
 
 uint8_t interrupts_get_isa_irq_vec(uint8_t isa_irq) {
-    return ISA_IRQ_BASE + isa_irq;
+    return ISA_IRQ_OFFSET + isa_irq;
 }
 
 void interrupts_init(void) {
@@ -48,28 +56,27 @@ void interrupts_init(void) {
         int_handlers[exc_vec] = exception_handler;
     }
 
-    for (uint8_t pic_irq = 0; pic_irq < PIC_HANDLED_IRQ_COUNT; pic_irq++) {
-        int_handlers[pic_irq + PIC1_IRQ_BASE] = pic_irq_handler;
-        int_handlers[pic_irq + PIC2_IRQ_BASE] = pic_irq_handler;
+    for (uint8_t pic_irq = 0; pic_irq < IRQ_COUNT_PER_PIC; pic_irq++) {
+        int_handlers[pic_irq + PIC1_IRQ_OFFSET] = pic_irq_handler;
+        int_handlers[pic_irq + PIC2_IRQ_OFFSET] = pic_irq_handler;
     }
 
     klog_info("Interrupts initialized");
 }
 
 uint8_t interrupts_alloc_vector(void) {
-    static struct spinlock_t lock;
-    bool prev_int_state = cpu_set_int_state(false);
-    spinlock_acquire(&lock);
+    static struct spinlock_t lock = SPINLOCK_STATIC_INIT;
+    spin_lock_irqsave(&lock);
 
-    if (last_allocated_vec == LAST_USABLE_VECTOR) {
+    if (curr_free_vector == USABLE_VECTORS_END) {
         kpanic("All usable vectors are exhausted");
     }
 
-    uint8_t ret = last_allocated_vec;
-    last_allocated_vec++;
+    uint8_t ret = curr_free_vector;
+    curr_free_vector++;
 
-    spinlock_release(&lock);
-    cpu_set_int_state(prev_int_state);
+    spin_unlock_irqrestore(&lock);
+
     return ret;
 }
 
@@ -78,7 +85,7 @@ void interrupts_set_handler(uint8_t vec, int_handler_t handler) {
 }
 
 void interrupts_set_isa_irq_handler(uint8_t isa_irq, int_handler_t handler) {
-    kassert(isa_irq < ISA_IRQ_COUNT);
+    kassert(isa_irq < ISA_IRQ_MAX);
     uint8_t isa_irq_vec = interrupts_get_isa_irq_vec(isa_irq);
     int_handlers[isa_irq_vec] = handler;
 }

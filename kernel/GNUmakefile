@@ -21,7 +21,16 @@ LD := ld
 
 # User controllable C flags.
 COMMIT_HASH = $(shell git rev-parse --short HEAD)
-CFLAGS := -Wpedantic -g -O2 -pipe -DPRINTF_INCLUDE_CONFIG_H -DCOMMIT_HASH=\"$(COMMIT_HASH)\"
+CFLAGS := \
+	-DPRINTF_INCLUDE_CONFIG_H \
+	-DCOMMIT_HASH=\"$(COMMIT_HASH)\" \
+	-fno-builtin-memcpy \
+	-fno-omit-frame-pointer \
+	-g \
+	-nostdlib \
+	-O2 \
+	-pipe \
+	-Wpedantic
 
 # User controllable C preprocessor flags. We set none by default.
 CPPFLAGS :=

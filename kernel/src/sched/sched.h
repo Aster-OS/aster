@@ -1,9 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-
 #include "memory/pmm/pmm.h"
-#include "mp/cpu.h"
 #include "sched/proc.h"
 #include "sched/thread.h"
 

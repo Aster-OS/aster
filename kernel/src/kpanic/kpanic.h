@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stddef.h>
-
 #include "arch/x86_64/interrupts/interrupts.h"
 
 __attribute__((noreturn))

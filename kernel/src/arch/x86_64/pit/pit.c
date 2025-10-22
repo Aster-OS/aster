@@ -1,4 +1,4 @@
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
 #include "arch/x86_64/apic/ioapic.h"
 #include "arch/x86_64/apic/lapic.h"
 #include "arch/x86_64/interrupts/interrupts.h"

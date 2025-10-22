@@ -1,9 +1,6 @@
 #pragma once
 
-#include <stdarg.h>
-
 #include "dev/tty/tty.h"
-#include "limine.h"
 #include "klog/klog_lvl.h"
 
 void klog(enum klog_lvl lvl, ...);

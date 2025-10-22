@@ -7,13 +7,12 @@
 #define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
 
-// Compile nanoprintf in this translation unit
+// compile nanoprintf in this translation unit
 #define NANOPRINTF_IMPLEMENTATION
 #include "lib/nanoprintf/nanoprintf.h"
 #include "lib/spinlock/spinlock.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "mp/cpu.h"
 
 #define LOG_FATAL_CLR "\033[31m"
 #define LOG_ERROR_CLR "\033[91m"
@@ -22,11 +21,11 @@
 #define LOG_DEBUG_CLR "\033[36m"
 #define LOG_RESET_CLR "\033[37m"
 
-#define TTY_MAX_COUNT 3
+#define TTY_MAX_COUNT 5
 
-static struct tty_t *ttys[TTY_MAX_COUNT];
-static uint8_t tty_count;
 static enum klog_lvl curr_lvl;
+static uint8_t tty_count;
+static struct tty_t *ttys[TTY_MAX_COUNT];
 
 static void ttys_putchar(int c, void *ctx) {
     (void) ctx;
@@ -56,14 +55,13 @@ static inline const char *get_prefix(enum klog_lvl lvl) {
 }
 
 void klog(enum klog_lvl lvl, ...) {
-    static struct spinlock_t klog_lock;
+    static struct spinlock_t klog_lock = SPINLOCK_STATIC_INIT;
 
     va_list va;
     va_start(va, lvl);
     const char *fmt = va_arg(va, const char *);
 
-    bool prev_int_state = cpu_set_int_state(false);
-    spinlock_acquire(&klog_lock);
+    spin_lock_irqsave(&klog_lock);
 
     curr_lvl = lvl;
 
@@ -77,8 +75,7 @@ void klog(enum klog_lvl lvl, ...) {
         if (tty->do_flush) tty->flush();
     }
 
-    spinlock_release(&klog_lock);
-    cpu_set_int_state(prev_int_state);
+    spin_unlock_irqrestore(&klog_lock);
 
     va_end(va);
 }

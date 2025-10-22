@@ -13,12 +13,16 @@ enum thread_state_t {
 };
 
 struct thread_t {
-    struct thread_t *prev;
-    struct thread_t *next;
+    struct {
+        struct thread_t *prev;
+        struct thread_t *next;
+    } links;
     void *kstack;
     struct proc_t *parent;
-    struct thread_t *proc_prev;
-    struct thread_t *proc_next;
+    struct {
+        struct thread_t *prev;
+        struct thread_t *next;
+    } proc_links;
     void *sp;
     enum thread_state_t state;
     tid_t tid;

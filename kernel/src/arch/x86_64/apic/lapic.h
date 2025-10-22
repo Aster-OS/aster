@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 void lapic_init(void);
+void lapic_init_cpu(void);
 void lapic_ipi(uint8_t vec, uint32_t dest_lapic_id);
 void lapic_ipi_all(uint8_t vec);
 void lapic_ipi_all_no_self(uint8_t vec);

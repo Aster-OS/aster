@@ -10,12 +10,14 @@ struct thread_t;
 typedef uint16_t pid_t;
 
 struct proc_t {
-    struct proc_t *prev;
-    struct proc_t *next;
+    struct {
+        struct proc_t *prev;
+        struct proc_t *next;
+    } links;
     char *name;
     phys_t pagemap;
     pid_t pid;
-    DLIST_INSTANCE_ATOMIC(threads, struct thread_t, DLIST_NO_ATTR);
+    DLIST_HEAD_SYNCED(threads, struct thread_t);
 };
 
 void proc_threads_init(struct proc_t *proc);

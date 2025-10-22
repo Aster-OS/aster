@@ -33,7 +33,7 @@ def main():
     args = parser.parse_args()
 
     qemu = f"qemu-system-{args.arch}"
-    qemu_flags = "-m 2G -vga std".split()
+    qemu_flags = "-m 2G".split()
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 

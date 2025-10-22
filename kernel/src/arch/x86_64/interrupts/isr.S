@@ -30,7 +30,7 @@ isr_common_entry:
     push %rax
 
     mov %rsp, %rdi
-    call common_int_handler # call the common interrupt handler defined in C
+    call common_int_handler
 
     pop %rax
     mov %rax, %cr4
@@ -58,27 +58,24 @@ isr_common_entry:
     pop %rbx
     pop %rax
 
-    add $16, %rsp # pop EC and vector number from the stack
+    add $16, %rsp # pop error code and interrupt vector
 
-    iretq # return from interrupt
+    iretq
 
-# create ISR for exceptions that push an EC
 .macro isr_ec vector
     isr_\vector:
-        # EC is already pushed by CPU
         push $\vector
         jmp isr_common_entry
 .endm
 
-# create ISR for other interrupts and exceptions that do not push an EC
 .macro isr_no_ec vector
     isr_\vector:
-        push $0 # push zero as EC
+        push $0
         push $\vector
         jmp isr_common_entry
 .endm
 
-# create ISRs for CPU exceptions (0-31)
+# CPU Exceptions (0x00 - 0x1f)
 isr_no_ec 0
 isr_no_ec 1
 isr_no_ec 2
@@ -87,7 +84,6 @@ isr_no_ec 4
 isr_no_ec 5
 isr_no_ec 6
 isr_no_ec 7
-
 isr_ec 8
 isr_no_ec 9
 isr_ec 10
@@ -96,7 +92,6 @@ isr_ec 12
 isr_ec 13
 isr_ec 14
 isr_no_ec 15
-
 isr_no_ec 16
 isr_ec 17
 isr_no_ec 18
@@ -105,7 +100,6 @@ isr_no_ec 20
 isr_ec 21
 isr_no_ec 22
 isr_no_ec 23
-
 isr_no_ec 24
 isr_no_ec 25
 isr_no_ec 26
@@ -117,7 +111,7 @@ isr_no_ec 31
 
 .altmacro
 
-# create ISRs for the other interrupt vectors (32-255)
+# 0x20 - 0xff
 .set i, 32
 .rept 224
     isr_no_ec %i
@@ -128,7 +122,6 @@ isr_no_ec 31
     .quad isr_\vector
 .endm
 
-# array of all ISR addresses
 .section .rodata
 .global isr_array
 isr_array:

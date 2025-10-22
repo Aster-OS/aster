@@ -1,6 +1,6 @@
 #pragma once
 
-// Maybe provide an option to disable kernel asserts?
+// TODO provide an option to disable kernel asserts
 #define kassert(assertion) \
     (assertion) ? (void) 0 : kassert_fail(#assertion, __FILE__, __LINE__, __func__)
 

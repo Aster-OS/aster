@@ -28,7 +28,7 @@ typedef struct __attribute__((packed)) {
     Elf64_Xword sh_entsize;
 } Elf64_Shdr;
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     Elf64_Word st_name;
     unsigned char st_info;
     unsigned char st_other;

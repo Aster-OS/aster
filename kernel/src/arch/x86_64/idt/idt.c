@@ -1,12 +1,10 @@
-#include <stddef.h>
+#include <stdint.h>
 
 #include "arch/x86_64/gdt/gdt_selectors.h"
 #include "arch/x86_64/idt/idt.h"
 #include "klog/klog.h"
 
-static const uint8_t IDT_DESC_ATTR_INTERRUPT_GATE = 0xe;
-static const uint8_t IDT_DESC_ATTR_PRESENT = 0x80;
-static const uint8_t IDT_DESC_ATTR = IDT_DESC_ATTR_PRESENT | IDT_DESC_ATTR_INTERRUPT_GATE;
+static const uint8_t IDT_DESC_ATTR = 0x8e;
 
 struct __attribute__((packed)) idt_descriptor_t {
     uint16_t addr_0_15;
@@ -49,7 +47,7 @@ void idt_init(void) {
         idt_set_descriptor(vector, isr_array[vector], 0);
     }
 
-    klog_info("IDT initialized");    
+    klog_info("IDT initialized");
 }
 
 void idt_reload(void) {

@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
 #include "dev/tty/serial.h"
 
 static struct tty_t serial_tty;

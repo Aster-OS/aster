@@ -18,26 +18,26 @@ enum ioapic_regs {
     IOREDTBL = 0x10
 };
 
-static uint32_t ioapic_rd(uint32_t ioapic_addr, uint8_t reg) {
+static uint32_t ioapic_read(uint32_t ioapic_addr, uint8_t reg) {
     *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) = reg;
     return *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_get_hhdm_offset());
 }
 
-static void ioapic_wr(uint32_t ioapic_addr, uint8_t reg, uint32_t val) {
+static void ioapic_write(uint32_t ioapic_addr, uint8_t reg, uint32_t val) {
     *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) = reg;
     *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_get_hhdm_offset()) = val;
 }
 
 uint32_t ioapic_get_max_redir_entry(uint32_t ioapic_addr) {
-    return (ioapic_rd(ioapic_addr, IOAPICVER) >> 16) & 0xff;
+    return (ioapic_read(ioapic_addr, IOAPICVER) >> 16) & 0xff;
 }
 
-void ioapic_wr_redtbl(struct ioapic_t *ioapic, uint32_t gsi, uint64_t val) {
+void ioapic_write_redtbl(struct ioapic_t *ioapic, uint32_t gsi, uint64_t val) {
     uint32_t relative_gsi = gsi - ioapic->gsi_base;
     uint32_t redir_entry_reg_lo = IOREDTBL + 2 * relative_gsi;
     uint32_t redir_entry_reg_hi = IOREDTBL + 2 * relative_gsi + 1;
-    ioapic_wr(ioapic->address, redir_entry_reg_lo, val & 0xffffffff);
-    ioapic_wr(ioapic->address, redir_entry_reg_hi, val >> 32);
+    ioapic_write(ioapic->address, redir_entry_reg_lo, val & 0xffffffff);
+    ioapic_write(ioapic->address, redir_entry_reg_hi, val >> 32);
 }
 
 void ioapic_init(void) {
@@ -53,10 +53,10 @@ void ioapic_init(void) {
 }
 
 void ioapic_unmask_isa_irq(uint8_t isa_irq) {
-    kassert(isa_irq < ISA_IRQ_COUNT);
+    kassert(isa_irq < ISA_IRQ_MAX);
 
-    // TODO: GSI/IRQ balancing...
-    uint8_t cpu_handling_irq_lapic_id = mp_get_bsp()->lapic_id;
+    // TODO: GSI/IRQ balancing
+    uint8_t lapic_id_handling_cpu = mp_get_bsp()->lapic_id;
     uint8_t isa_irq_vec = interrupts_get_isa_irq_vec(isa_irq);
     struct ioapic_iso_t *ioapic_iso = madt_find_iso_by_isa_irq(isa_irq);
 
@@ -71,9 +71,9 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
         redtbl_val |= IOAPIC_DEST_MODE_PHYSICAL;
         redtbl_val |= IOAPIC_ACTIVE_HIGH;
         redtbl_val |= IOAPIC_TRIGGER_EDGE;
-        redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
+        redtbl_val |= ioapic_dest(lapic_id_handling_cpu);
 
-        ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
+        ioapic_write_redtbl(ioapic, gsi, redtbl_val);
     } else {
         uint32_t gsi = ioapic_iso->gsi;
 
@@ -95,8 +95,8 @@ void ioapic_unmask_isa_irq(uint8_t isa_irq) {
             redtbl_val |= IOAPIC_TRIGGER_LEVEL;
         }
 
-        redtbl_val |= ioapic_dest(cpu_handling_irq_lapic_id);
-        ioapic_wr_redtbl(ioapic, gsi, redtbl_val);
+        redtbl_val |= ioapic_dest(lapic_id_handling_cpu);
+        ioapic_write_redtbl(ioapic, gsi, redtbl_val);
     }
 
     klog_debug("IOAPIC: Unmasked ISA IRQ %llu", isa_irq);

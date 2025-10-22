@@ -1,7 +1,7 @@
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
 #include "arch/x86_64/msr.h"
+#include "kpanic/kpanic.h"
 #include "mp/cpu.h"
-#include "mp/mp.h"
 
 bool cpuid(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
     bool extended_feature_leaf = leaf >= 0x80000000;
@@ -38,17 +38,11 @@ bool cpu_get_brand_str(char *str) {
     return false;
 }
 
-bool cpu_set_int_state(bool enabled) {
-    disable_interrupts();
-    bool interrupts_prev_enabled = get_cpu()->interrupts_enabled;
-    get_cpu()->interrupts_enabled = enabled;
-    if (enabled) {
-        enable_interrupts();
-    }
-    return interrupts_prev_enabled;
-}
-
 struct cpu_t *get_cpu(void) {
+    if (interrupts_state()) {
+        kpanic("get_cpu() called with interrupts on");
+    }
+
     return (struct cpu_t *) rdmsr(MSR_KERNEL_GS_BASE);
 }
 

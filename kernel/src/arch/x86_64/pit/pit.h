@@ -1,6 +1,6 @@
 #pragma once
 
-#include "arch/x86_64/interrupts/interrupts.h"
+#include <stdint.h>
 
 uint64_t pit_get_ns(void);
 void pit_init(void);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 static inline void cpuid_no_leaf_check(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
@@ -36,6 +37,22 @@ static inline void disable_interrupts(void) {
 
 static inline void enable_interrupts(void) {
     __asm__ volatile("sti" : : : "memory");
+}
+
+static inline bool interrupts_state(void) {
+    uint64_t rflags;
+    __asm__ volatile("pushfq; pop %0" : "=rm" (rflags) : : "memory");
+    return rflags & (1 << 9);
+}
+
+static inline bool interrupts_set(bool enable) {
+    bool prev_enabled = interrupts_state();
+    if (enable) {
+        enable_interrupts();
+    } else {
+        disable_interrupts();
+    }
+    return prev_enabled;
 }
 
 static inline void halt(void) {

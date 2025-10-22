@@ -1,12 +1,14 @@
 #include <stdarg.h>
 
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
+#include "arch/x86_64/apic/lapic.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/nanoprintf/nanoprintf.h"
 #include "lib/stacktrace/stacktrace.h"
 #include "lib/spinlock/spinlock.h"
 #include "mp/mp.h"
+#include "timer/timer.h"
 
 static char kpanic_buf[256];
 
@@ -26,12 +28,15 @@ static void print_int_ctx(struct int_ctx_t *ctx) {
     klog_fatal("  cs %04x ss %04x", ctx->cs, ctx->ss);
 }
 
-static struct spinlock_t panic_lock;
+static struct spinlock_t panic_lock = SPINLOCK_STATIC_INIT;
 
 __attribute__((noreturn))
 static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va) {
+    lapic_ipi_all_no_self(mp_get_halt_vector());
+    timer_sleep_ns(100000);
+
     npf_vsnprintf(kpanic_buf, sizeof(kpanic_buf), reason, va);
-    klog_fatal("KERNEL PANIC on CPU #%llu >>> %s", get_cpu()->id, kpanic_buf);
+    klog_fatal("KERNEL PANIC on CPU %llu >>> %s", get_cpu()->id, kpanic_buf);
 
     stacktrace(0);
 
@@ -42,14 +47,13 @@ static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va
         klog_fatal("No interrupt context provided");
     }
 
-    mp_halt_all_cpus();
     while (1) halt();
 }
 
 __attribute__((noreturn))
 void kpanic(const char *reason, ...) {
-    cpu_set_int_state(false);
-    spinlock_acquire(&panic_lock);
+    interrupts_set(false);
+    spin_lock(&panic_lock);
 
     va_list va;
     va_start(va, reason);
@@ -59,8 +63,8 @@ void kpanic(const char *reason, ...) {
 
 __attribute__((noreturn))
 void kpanic_int_ctx(struct int_ctx_t *ctx, const char *reason, ...) {
-    cpu_set_int_state(false);
-    spinlock_acquire(&panic_lock);
+    interrupts_set(false);
+    spin_lock(&panic_lock);
 
     va_list va;
     va_start(va, reason);

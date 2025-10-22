@@ -8,26 +8,26 @@ struct timer_t {
     void (*sleep_ns)(uint64_t ns);
 };
 
-static struct timer_t curr_timer;
+static struct timer_t system_timer;
 
 void timer_init(void) {
     if (hpet_is_supported()) {
         hpet_init();
-        curr_timer.get_ns = hpet_get_ns;
-        curr_timer.sleep_ns = hpet_sleep_ns;
+        system_timer.get_ns = hpet_get_ns;
+        system_timer.sleep_ns = hpet_sleep_ns;
         klog_info("Using HPET as system timer");
     } else {
         pit_init();
-        curr_timer.get_ns = pit_get_ns;
-        curr_timer.sleep_ns = pit_sleep_ns;
+        system_timer.get_ns = pit_get_ns;
+        system_timer.sleep_ns = pit_sleep_ns;
         klog_info("Using PIT as system timer");
     }
 }
 
 uint64_t timer_get_ns(void) {
-    return curr_timer.get_ns();
+    return system_timer.get_ns();
 }
 
 void timer_sleep_ns(uint64_t ns) {
-    curr_timer.sleep_ns(ns);
+    system_timer.sleep_ns(ns);
 }

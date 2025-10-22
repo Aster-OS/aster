@@ -16,6 +16,6 @@ struct __attribute__((packed)) sdt_hdr_t {
     uint32_t creator_revision;
 };
 
-uint8_t acpi_calculate_table_checksum(void *table);
+uint8_t acpi_calc_table_checksum(void *table);
 struct sdt_hdr_t *acpi_find_table(char *signature);
 void acpi_init(phys_t rsdp_addr);

@@ -9,10 +9,9 @@
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
-#include "mp/cpu.h"
 
 static const uintptr_t HEAP_START = 0xffffffffd0000000;
-static const uintptr_t HEAP_SIZE = 0x200000;
+static const uintptr_t HEAP_SIZE = 0x2000000;
 static const uintptr_t HEAP_END = HEAP_START + HEAP_SIZE;
 
 static const uint64_t HEAP_ALIGNMENT = 8;
@@ -21,13 +20,15 @@ static const uint64_t CHUNK_SIZE_MASK = ~(HEAP_ALIGNMENT - 1);
 static const uint64_t FLAG_IS_FREE = 0x1;
 static const uint64_t FLAG_IS_PREV_FREE = 0x2;
 
-static struct spinlock_t kmalloc_lock;
+static struct spinlock_t kmalloc_lock = SPINLOCK_STATIC_INIT;
 
 // free chunks are kept on a doubly linked freelist
 struct free_node_t {
     size_t chunk_metadata; // do not move
-    struct free_node_t *prev;
-    struct free_node_t *next;
+    struct {
+        struct free_node_t *prev;
+        struct free_node_t *next;
+    } links;
 };
 
 // footer placed right before the end of every free chunk
@@ -91,27 +92,27 @@ static inline bool is_in_heap_bounds(uintptr_t addr) {
     return addr >= HEAP_START && addr < HEAP_END;
 }
 
-DLIST_INSTANCE(freelist, struct free_node_t, static);
+static DLIST_HEAD(freelist, struct free_node_t);
 
 static void freelist_add_node(struct free_node_t *node_to_add) {
-    DLIST_INSERT(freelist, node_to_add, prev, next);
+    DLIST_INSERT(freelist, node_to_add, links); 
 }
 
 static void freelist_remove_node(struct free_node_t *node_to_remove) {
     kassert(node_to_remove != NULL);
-    DLIST_DELETE(freelist, node_to_remove, prev, next);
+    DLIST_DELETE(freelist, node_to_remove, links);
 }
 
 void *kmalloc(size_t sz) {
-    size_t alloc_sz = sz + sizeof(struct alloc_hdr_t);
-    alloc_sz = align_sz(alloc_sz);
+    size_t needed_sz = sz + sizeof(struct alloc_hdr_t);
+    needed_sz = align_sz(needed_sz);
  
     // make sure that after the allocation, when this chunk is freed,
     // it will be large enough to hold the free_node_t and the free_footer_t structs
     size_t FREE_CHUNK_MIN_SZ = 
         align_sz(sizeof(struct free_node_t) + sizeof(struct free_footer_t));
-    if (alloc_sz < FREE_CHUNK_MIN_SZ) {
-        alloc_sz = FREE_CHUNK_MIN_SZ;
+    if (needed_sz < FREE_CHUNK_MIN_SZ) {
+        needed_sz = FREE_CHUNK_MIN_SZ;
     }
 
     // search for a free chunk which either has a free size equal to alloc_sz:
@@ -119,24 +120,22 @@ void *kmalloc(size_t sz) {
     // OR a free size of at least alloc_sz + FREE_CHUNK_MIN_SZ:
     //   split the chunk in two; allocate the first slice; add the second slice on the freelist
 
-    bool prev_int_state = cpu_set_int_state(false);
-    spinlock_acquire(&kmalloc_lock);
+    spin_lock_irqsave(&kmalloc_lock);
     
     struct free_node_t *free = freelist.head;
     size_t free_sz;
     while (free != NULL) {
         free_sz = get_sz(free);
-        if (free_sz == alloc_sz ||
-            free_sz >= alloc_sz + FREE_CHUNK_MIN_SZ) {
+        if (free_sz == needed_sz ||
+            free_sz >= needed_sz + FREE_CHUNK_MIN_SZ) {
             break;
         }
 
-        free = free->next;
+        free = free->links.next;
     }
 
     if (free == NULL) {
-        spinlock_release(&kmalloc_lock);
-        cpu_set_int_state(prev_int_state);
+        spin_unlock_irqrestore(&kmalloc_lock);
         kpanic("Kernel heap out of memory - failed to allocate 0x%llx bytes", sz);
     }
     
@@ -145,7 +144,7 @@ void *kmalloc(size_t sz) {
 
     uintptr_t free_addr = (uintptr_t) free;
 
-    if (free_sz == alloc_sz) {
+    if (free_sz == needed_sz) {
         // this whole chunk gets allocated,
         // so the next chunk will not have any previous free chunk
         uintptr_t next_addr = free_addr + free_sz;
@@ -155,9 +154,9 @@ void *kmalloc(size_t sz) {
         }
 
     } else /* free_sz >= alloc_sz + FREE_CHUNK_MIN_SZ */ {
-        uintptr_t remain_addr = free_addr + alloc_sz;
+        uintptr_t remain_addr = free_addr + needed_sz;
         struct free_node_t *remain = (struct free_node_t *) remain_addr;
-        set_sz(remain, free_sz - alloc_sz);
+        set_sz(remain, free_sz - needed_sz);
         set_flag(remain, FLAG_IS_FREE);
         unset_flag(remain, FLAG_IS_PREV_FREE);
 
@@ -172,20 +171,18 @@ void *kmalloc(size_t sz) {
     }
 
     struct alloc_hdr_t *alloc_hdr = (struct alloc_hdr_t *) free;
-    set_sz(alloc_hdr, alloc_sz);
+    set_sz(alloc_hdr, needed_sz);
     unset_flag(alloc_hdr, FLAG_IS_FREE);
     // FLAG_IS_PREV_FREE is left unchanged
 
-    spinlock_release(&kmalloc_lock);
-    cpu_set_int_state(prev_int_state);
+    spin_unlock_irqrestore(&kmalloc_lock);
 
     // return the address after the allocation header
     return (void *) ((uintptr_t) alloc_hdr + sizeof(struct alloc_hdr_t));
 }
 
 void kfree(void *ptr) {
-    bool prev_int_state = cpu_set_int_state(false);
-    spinlock_acquire(&kmalloc_lock);
+    spin_lock_irqsave(&kmalloc_lock);
 
     uintptr_t ptr_addr = (uintptr_t) ptr;
 
@@ -276,8 +273,7 @@ void kfree(void *ptr) {
         freelist_remove_node((struct free_node_t *) next);
     }
 
-    spinlock_release(&kmalloc_lock);
-    cpu_set_int_state(prev_int_state);
+    spin_unlock_irqrestore(&kmalloc_lock);
 }
 
 void kmalloc_init(void) {
@@ -294,5 +290,5 @@ void kmalloc_init(void) {
     unset_flag(first, FLAG_IS_PREV_FREE);
     freelist_add_node(first);
 
-    klog_info("Heap initialized with %lluMiB of avl. memory", HEAP_SIZE >> 20);
+    klog_info("Kernel heap initialized with %lluMiB of memory", HEAP_SIZE >> 20);
 }

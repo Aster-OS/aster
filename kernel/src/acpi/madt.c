@@ -7,7 +7,6 @@
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "memory/kmalloc/kmalloc.h"
-#include "memory/vmm/vmm.h"
 
 struct __attribute__((packed)) madt_entry_t {
     uint8_t type;
@@ -22,10 +21,8 @@ struct __attribute__((packed)) madt_t {
     uint8_t entries[];
 };
 
-// This flag indicates that the system has a PC-AT-compatible
-// dual-8259 setup. The 8259 vectors must be disabled (that is,
-// masked) when enabling the APIC.
-// This flag is ignored and the PIC is disabled anyways.
+// this flag indicates that the system has a PC-AT-compatible dual-8259 setup
+// this flag is ignored and the PICs are disabled anyways
 static const uint32_t MADT_FLAG_PCAT_COMPAT = 1 << 0;
 
 static struct lapic_nmi_t **lapic_nmis;
@@ -93,7 +90,7 @@ void madt_init(void) {
     struct madt_t *madt = (struct madt_t *) acpi_find_table("APIC");
 
     kassert(madt != NULL);
-    kassert(acpi_calculate_table_checksum(madt) == 0);
+    kassert(acpi_calc_table_checksum(madt) == 0);
 
     klog_debug("Dual 8259 PIC system: %s", madt->flags & MADT_FLAG_PCAT_COMPAT ? "yes" : "no");
 

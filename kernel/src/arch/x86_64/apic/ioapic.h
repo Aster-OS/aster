@@ -39,5 +39,5 @@ static inline uint64_t ioapic_dest(uint8_t lapic_id) {
 
 uint32_t ioapic_get_max_redir_entry(uint32_t ioapic_addr);
 void ioapic_init(void);
-void ioapic_wr_redtbl(struct ioapic_t *ioapic, uint32_t gsi, uint64_t val);
+void ioapic_write_redtbl(struct ioapic_t *ioapic, uint32_t gsi, uint64_t val);
 void ioapic_unmask_isa_irq(uint8_t isa_irq);

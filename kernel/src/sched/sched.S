@@ -1,8 +1,5 @@
 .section .text
 
-# bool cpu_set_int_state(bool enabled);
-.extern cpu_set_int_state
-
 # void sched_thread_exit(void *thread_returned);
 .extern sched_thread_exit
 
@@ -13,9 +10,7 @@ sched_thread_entry:
     pop %rdi # arg
 
     # align stack on a 16-byte boundary
-    mov $0xf, %rcx
-    not %rcx
-    and %rcx, %rsp
+    and $0xfffffffffffffff0, %rsp
 
     # call the thread start routine
     call *%rax
@@ -28,13 +23,9 @@ sched_thread_entry:
     # unreachable
     ud2
 
-# void sched_thread_switch(void **curr_sp, void **new_sp, bool prev_int_state);
+# void sched_thread_switch(void **curr_sp_ptr, void **next_sp_ptr);
 .global sched_thread_switch
 sched_thread_switch:
-    # skip saving state if current sp is NULL
-    test %rdi, %rdi
-    jz skip_thread_save
-
     # save call-preserved registers; save current sp
     push %rbx
     push %rbp
@@ -44,7 +35,6 @@ sched_thread_switch:
     push %r15
     mov %rsp, (%rdi)
 
-skip_thread_save:
     # restore new sp; restore call-preserved registers
     mov (%rsi), %rsp
     pop %r15
@@ -53,9 +43,5 @@ skip_thread_save:
     pop %r12
     pop %rbp
     pop %rbx
-
-    # restore previous interrupt state
-    mov %rdx, %rdi
-    call cpu_set_int_state
 
     ret

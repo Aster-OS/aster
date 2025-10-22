@@ -1,9 +1,7 @@
 #include "acpi/acpi.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
-#include "kpanic/kpanic.h"
 #include "lib/strutil.h"
-#include "limine.h"
 #include "memory/vmm/vmm.h"
 
 struct __attribute__((packed)) rsdp_t {
@@ -20,7 +18,7 @@ struct __attribute__((packed)) xsdp_t {
     char oem_id[6];
     uint8_t revision;
     uint32_t rsdt_address;
-    // The following fields exist only in ACPI v2+
+    // the following fields exist only in ACPI v2+
     uint32_t length;
     uint64_t xsdt_address;
     uint8_t extended_checksum;
@@ -41,10 +39,10 @@ static bool xsdt_supported;
 static void *rsdt_or_xsdt;
 static uint64_t acpi_table_count;
 
-uint8_t acpi_calculate_table_checksum(void *table) {
+uint8_t acpi_calc_table_checksum(void *table) {
     struct sdt_hdr_t *hdr = (struct sdt_hdr_t *) table;
 
-    // Only the last byte of the checksum matters
+    // only the last byte of the checksum matters
     uint8_t checksum = 0;
     for (uint32_t i = 0; i < hdr->length; i++) {
         checksum += ((uint8_t *) table)[i];
@@ -89,7 +87,7 @@ void acpi_init(phys_t rsdp_addr) {
         xsdt_supported = true;
     }
 
-    // Only the last byte of the checksum matters
+    // only the last byte of the checksum matters
     uint8_t rsdp_or_xsdp_checksum = 0;
     uint32_t rsdp_or_xsdp_sz = xsdt_supported ? sizeof(struct xsdp_t) : sizeof(struct rsdp_t);
     for (uint32_t i = 0; i < rsdp_or_xsdp_sz; i++) {
@@ -103,7 +101,7 @@ void acpi_init(phys_t rsdp_addr) {
     vmm_map_hhdm(rsdt_or_xsdt_addr);
     rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
 
-    kassert(acpi_calculate_table_checksum(rsdt_or_xsdt) == 0);
+    kassert(acpi_calc_table_checksum(rsdt_or_xsdt) == 0);
 
     if (xsdt_supported) {
         struct xsdt_t *xsdt = (struct xsdt_t *) rsdt_or_xsdt;

@@ -1,4 +1,4 @@
-#include "arch/x86_64/asm_wrappers.h"
+#include "arch/x86_64/asm.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"

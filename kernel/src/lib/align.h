@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 static inline uint64_t align_down(uint64_t x, uint64_t align) {
     return x / align * align;
 }
