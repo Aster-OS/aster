@@ -128,35 +128,39 @@ void pmm_free_n(phys_t addr, uint64_t n_pages) {
 
 static char *get_entry_type(uint64_t entry_type) {
     switch (entry_type) {
-        case LIMINE_MEMMAP_USABLE:
-            return "Usable";
-        case LIMINE_MEMMAP_RESERVED:
-            return "Reserved";
-        case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
-            return "ACPI Recl.";
-        case LIMINE_MEMMAP_ACPI_NVS:
-            return "ACPI NVS";
-        case LIMINE_MEMMAP_BAD_MEMORY:
-            return "Bad Memory";
-        case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
-            return "Bootloader Recl.";
-        case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
-            return "Executable/Modules";
-        case LIMINE_MEMMAP_FRAMEBUFFER:
-            return "Framebuffer";
-        default:
-            return "Unknown";
+    case LIMINE_MEMMAP_USABLE:
+        return "Usable";
+    case LIMINE_MEMMAP_RESERVED:
+        return "Reserved";
+    case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
+        return "ACPI reclaimable";
+    case LIMINE_MEMMAP_ACPI_NVS:
+        return "ACPI NVS";
+    case LIMINE_MEMMAP_BAD_MEMORY:
+        return "Bad memory";
+    case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
+        return "Bootloader reclaimable";
+    case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
+        return "Executable/Modules";
+    case LIMINE_MEMMAP_FRAMEBUFFER:
+        return "Framebuffer";
+    case LIMINE_MEMMAP_ACPI_TABLES:
+        return "ACPI tables";
+    default:
+        return "Unknown";
     }
 }
 
 void pmm_print_memmap(struct limine_memmap_response *memmap) {
     klog_debug("Physical memory layout:");
+    klog_debug("     START       |       END        |   SIZE   | TYPE");
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
         phys_t start = entry->base;
         phys_t end = entry->base + entry->length;
         uint64_t length_in_mib = entry->length >> 20;
         char *type = get_entry_type(entry->type);
-        klog_debug("%016llx - %016llx %5llu MiB %s", start, end, length_in_mib, type);
+        klog_debug("%016llx | %016llx | %5lluMiB | %s", start, end,
+                   length_in_mib, type);
     }
 }
