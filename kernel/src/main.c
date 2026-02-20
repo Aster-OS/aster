@@ -21,7 +21,7 @@
 #include "timer/timer.h"
 
 __attribute__((used, section(".limine_requests")))
-static volatile LIMINE_BASE_REVISION(3)
+static volatile uint64_t limine_base_revision[] = LIMINE_BASE_REVISION(4);
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_bootloader_info_request bootloader_info_request = {
@@ -62,7 +62,7 @@ static volatile struct limine_memmap_request memmap_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_mp_request mp_request = {
     .id = LIMINE_MP_REQUEST,
-    .flags = LIMINE_MP_X2APIC,
+    .flags = LIMINE_MP_REQUEST_X86_64_X2APIC,
     .revision = 0
 };
 
@@ -73,10 +73,10 @@ static volatile struct limine_rsdp_request rsdp_request = {
 };
 
 __attribute__((used, section(".limine_requests_start")))
-static volatile LIMINE_REQUESTS_START_MARKER
+static volatile uint64_t limine_reqs_start_marker[] = LIMINE_REQUESTS_START_MARKER;
 
 __attribute__((used, section(".limine_requests_end")))
-static volatile LIMINE_REQUESTS_END_MARKER
+static volatile uint64_t limine_reqs_end_marker[] = LIMINE_REQUESTS_END_MARKER;
 
 static void *test_thread(void *arg) {
     for (uint64_t i = 0; i < (uint64_t) arg; i++) {}
@@ -99,7 +99,7 @@ static void *kernel_init(void *arg) {
 }
 
 void kernel_entry(void) {
-    if (LIMINE_BASE_REVISION_SUPPORTED == false) {
+    if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) {
         halt();
     }
 

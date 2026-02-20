@@ -1,8 +1,6 @@
-/.cache
-/bin-*
-/cc-runtime
-/freestnd-c-hdrs
-/limine-protocol
-/obj-*
+bin-*/
+cc-runtime/
+freestnd-c-hdrs/
+limine-protocol/
+obj-*/
 .deps-obtained
-compile_commands.json

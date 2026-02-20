@@ -1,5 +1,8 @@
-/limine
-/qemu-runner
+.cache/
+.git/
 edk2-ovmf/
+limine/
+qemu-runner/
+compile_commands.json
 *.hdd
 *.iso

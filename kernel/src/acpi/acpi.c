@@ -60,7 +60,6 @@ struct sdt_hdr_t *acpi_find_table(char *signature) {
             table_addr = ((struct rsdt_t *) rsdt_or_xsdt)->entries[i];
         }
 
-        // ACPI tables are mapped in the HHDM in initialization
         struct sdt_hdr_t *table_hdr = (struct sdt_hdr_t *) (table_addr + vmm_get_hhdm_offset());
         if (strncmp(table_hdr->signature, signature, 4) == 0) {
             return table_hdr;
@@ -70,10 +69,9 @@ struct sdt_hdr_t *acpi_find_table(char *signature) {
     return NULL;
 }
 
-void acpi_init(phys_t rsdp_addr) {
-    vmm_map_hhdm(rsdp_addr);
-    struct rsdp_t *rsdp = (struct rsdp_t *) (rsdp_addr + vmm_get_hhdm_offset());
-    struct xsdp_t *xsdp = (struct xsdp_t *) rsdp;
+void acpi_init(void *rsdp_addr) {
+    struct rsdp_t *rsdp = (struct rsdp_t *)rsdp_addr;
+    struct xsdp_t *xsdp = (struct xsdp_t *)rsdp_addr;
 
     klog_debug("ACPI revision %llu", rsdp->revision);
 
@@ -98,7 +96,6 @@ void acpi_init(phys_t rsdp_addr) {
 
     kassert(rsdp_or_xsdp_checksum == 0);
 
-    vmm_map_hhdm(rsdt_or_xsdt_addr);
     rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
 
     kassert(acpi_calc_table_checksum(rsdt_or_xsdt) == 0);
@@ -109,16 +106,6 @@ void acpi_init(phys_t rsdp_addr) {
     } else {
         struct rsdt_t *rsdt = (struct rsdt_t *) rsdt_or_xsdt;
         acpi_table_count = (rsdt->hdr.length - sizeof(struct sdt_hdr_t)) / 4;
-    }
-
-    for (uint64_t i = 0; i < acpi_table_count; i++) {
-        phys_t table_addr;
-        if (xsdt_supported) {
-            table_addr = ((struct xsdt_t *) rsdt_or_xsdt)->entries[i];
-        } else {
-            table_addr = ((struct rsdt_t *) rsdt_or_xsdt)->entries[i];
-        }
-        vmm_map_hhdm(table_addr);
     }
 
     klog_info("ACPI initialized");

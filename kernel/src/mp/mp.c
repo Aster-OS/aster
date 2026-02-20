@@ -71,6 +71,8 @@ uint8_t mp_get_halt_vector(void) {
 void mp_init(struct limine_mp_response *mp) {
     klog_debug("x2APIC supported and enabled? %s", mp->flags & LIMINE_MP_X2APIC ? "yes" : "no");
     cpus = (struct cpu_t **) kmalloc(mp->cpu_count * sizeof(struct cpu_t *));
+    klog_debug("x2APIC supported and enabled? %s",
+               mp->flags & LIMINE_MP_RESPONSE_X86_64_X2APIC ? "yes" : "no");
 
     if (mp->cpu_count == 1) {
         klog_info("No APs to initialize");
@@ -112,7 +114,7 @@ void mp_init(struct limine_mp_response *mp) {
 }
 
 void mp_init_early(struct limine_mp_response *mp) {
-    x2apic_enabled = mp->flags & LIMINE_MP_X2APIC;
+    x2apic_enabled = mp->flags & LIMINE_MP_RESPONSE_X86_64_X2APIC;
 
     for (uint64_t i = 0; i < mp->cpu_count; i++) {
         struct limine_mp_info *cpu_info = mp->cpus[i];

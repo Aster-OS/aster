@@ -34,7 +34,7 @@ rm -f .deps-obtained
 clone_repo_commit \
     https://codeberg.org/OSDev/freestnd-c-hdrs-0bsd.git \
     freestnd-c-hdrs \
-    5e4e9e70278fe89ea328d359a58aff4f4a94b165
+    097259a899d30f0a4b7a694de2de5fdda942e923
 
 clone_repo_commit \
     https://codeberg.org/OSDev/cc-runtime.git \
@@ -44,7 +44,7 @@ clone_repo_commit \
 clone_repo_commit \
     https://codeberg.org/Limine/limine-protocol.git \
     limine-protocol \
-    fedf97facd1c473ee8720f8dfd5a71d03490d928
+    42e836e30242c2c14f889fd76c6f9a57b0c18ec2
 
 touch .deps-obtained
 

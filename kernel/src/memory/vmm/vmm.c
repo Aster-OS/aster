@@ -20,7 +20,16 @@ static uintptr_t hhdm_offset;
 
 static phys_t kernel_pagemap;
 
-void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_address_response *executable_addr) {
+static bool should_map_to_hhdm(uint64_t type) {
+    return type == LIMINE_MEMMAP_USABLE ||
+           type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE ||
+           type == LIMINE_MEMMAP_EXECUTABLE_AND_MODULES ||
+           type == LIMINE_MEMMAP_FRAMEBUFFER ||
+           type == LIMINE_MEMMAP_ACPI_TABLES ||
+           type == LIMINE_MEMMAP_ACPI_RECLAIMABLE ||
+           type == LIMINE_MEMMAP_ACPI_NVS;
+}
+
     kernel_pagemap = pmm_alloc(true);
 
     uintptr_t text_start = (uintptr_t) &__TEXT_START;
@@ -61,10 +70,7 @@ void vmm_init(struct limine_memmap_response *memmap, struct limine_executable_ad
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
 
-        // map only usable, bootloader recl, kernel/modules and framebuffer entries
-        // as per Limine base revision 3
-        if (entry->type == LIMINE_MEMMAP_USABLE || entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE
-        || entry->type == LIMINE_MEMMAP_EXECUTABLE_AND_MODULES || entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
+        if (should_map_to_hhdm(entry->type)) {
             uintptr_t entry_start = align_down(entry->base, PAGE_SIZE);
             uintptr_t entry_end = align_up(entry->base + entry->length, PAGE_SIZE);
 

@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 
-#include "memory/pmm/pmm.h"
 
 struct __attribute__((packed)) sdt_hdr_t {
     char signature[4];
@@ -18,4 +17,4 @@ struct __attribute__((packed)) sdt_hdr_t {
 
 uint8_t acpi_calc_table_checksum(void *table);
 struct sdt_hdr_t *acpi_find_table(char *signature);
-void acpi_init(phys_t rsdp_addr);
+void acpi_init(void *rsdp_addr);
