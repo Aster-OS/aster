@@ -106,7 +106,7 @@ def main():
     qemu_cmd = [qemu] + qemu_flags
 
     if args.verbose:
-        print(qemu_cmd)
+        print(" ".join(qemu_cmd))
 
     try:
         subprocess.run(qemu_cmd, check=True, stdout=sys.stdout, stderr=sys.stderr)
