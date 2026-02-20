@@ -1,18 +1,19 @@
 #include "acpi/acpi.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
+#include "lib/compiler.h"
 #include "lib/strutil.h"
 #include "memory/vmm/vmm.h"
 
-struct __attribute__((packed)) rsdp_t {
+struct rsdp_t {
     char signature[8];
     uint8_t checksum;
     char oem_id[6];
     uint8_t revision;
     uint32_t rsdt_address;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) xsdp_t {
+struct xsdp_t {
     char signature[8];
     uint8_t checksum;
     char oem_id[6];
@@ -23,17 +24,17 @@ struct __attribute__((packed)) xsdp_t {
     uint64_t xsdt_address;
     uint8_t extended_checksum;
     uint8_t reserved[3];
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) rsdt_t {
+struct rsdt_t {
     struct sdt_hdr_t hdr;
     uint32_t entries[];
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) xsdt_t {
+struct xsdt_t {
     struct sdt_hdr_t hdr;
     uint64_t entries[];
-};
+} ASTER_PACKED;
 
 static bool xsdt_supported;
 static void *rsdt_or_xsdt;

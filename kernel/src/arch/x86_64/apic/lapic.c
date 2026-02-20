@@ -4,6 +4,7 @@
 #include "arch/x86_64/msr.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/compiler.h"
 #include "memory/vmm/vmm.h"
 #include "mp/mp.h"
 #include "timer/timer.h"
@@ -49,8 +50,7 @@ enum lapic_deliv_mode {
     LAPIC_DELIV_MODE_EXTINT = 0x700
 };
 
-__attribute__((used))
-static const uint32_t LVT_MASKED = 0x10000;
+static const uint32_t LVT_MASKED ASTER_USED = 0x10000;
 
 enum lapic_lvt_timer_mode {
     LVT_TIMER_ONE_SHOT     = 0x0,

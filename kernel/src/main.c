@@ -11,6 +11,7 @@
 // #include "dev/tty/serial.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
+#include "lib/compiler.h"
 #include "lib/elf/symbols.h"
 #include "limine.h"
 #include "memory/kmalloc/kmalloc.h"
@@ -20,62 +21,59 @@
 #include "sched/sched.h"
 #include "timer/timer.h"
 
-__attribute__((used, section(".limine_requests")))
+ASTER_USED
+ASTER_SECTION(".limine_requests")
 static volatile uint64_t limine_base_revision[] = LIMINE_BASE_REVISION(4);
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_bootloader_info_request bootloader_info_request = {
-    .id = LIMINE_BOOTLOADER_INFO_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_bootloader_info_request bootloader_info_req = {
+    .id = LIMINE_BOOTLOADER_INFO_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_executable_address_request executable_addr_request = {
-    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_executable_address_request executable_addr_req = {
+    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_executable_file_request executable_file_request = {
-    .id = LIMINE_EXECUTABLE_FILE_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_executable_file_request executable_file_req = {
+    .id = LIMINE_EXECUTABLE_FILE_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_framebuffer_request fb_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_framebuffer_request fb_req = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_hhdm_request hhdm_request = {
-    .id = LIMINE_HHDM_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_hhdm_request hhdm_req = {
+    .id = LIMINE_HHDM_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_memmap_request memmap_request = {
-    .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_memmap_request memmap_req = {
+    .id = LIMINE_MEMMAP_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_mp_request mp_request = {
-    .id = LIMINE_MP_REQUEST,
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_mp_request mp_req = {
+    .id = LIMINE_MP_REQUEST_ID,
     .flags = LIMINE_MP_REQUEST_X86_64_X2APIC,
-    .revision = 0
-};
+    .revision = 0};
 
-__attribute__((used, section(".limine_requests")))
-static volatile struct limine_rsdp_request rsdp_request = {
-    .id = LIMINE_RSDP_REQUEST,
-    .revision = 0
-};
+ASTER_USED
+ASTER_SECTION(".limine_requests")
+static volatile struct limine_rsdp_request rsdp_req = {
+    .id = LIMINE_RSDP_REQUEST_ID, .revision = 0};
 
-__attribute__((used, section(".limine_requests_start")))
-static volatile uint64_t limine_reqs_start_marker[] = LIMINE_REQUESTS_START_MARKER;
+ASTER_USED
+ASTER_SECTION(".limine_requests_start")
+static volatile uint64_t limine_reqs_start_marker[] =
+    LIMINE_REQUESTS_START_MARKER;
 
-__attribute__((used, section(".limine_requests_end")))
+ASTER_USED
+ASTER_SECTION(".limine_requests_end")
 static volatile uint64_t limine_reqs_end_marker[] = LIMINE_REQUESTS_END_MARKER;
 
 static void *test_thread(void *arg) {
@@ -103,18 +101,21 @@ void kernel_entry(void) {
         halt();
     }
 
-    if (fb_request.response == NULL || fb_request.response->framebuffer_count < 1) {
+    if (fb_req.response == NULL || fb_req.response->framebuffer_count < 1) {
         halt();
     }
 
-    struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
-    struct limine_executable_address_response *executable_addr = executable_addr_request.response;
-    struct limine_executable_file_response *executable_file = executable_file_request.response;
-    struct limine_framebuffer_response *fb = fb_request.response;
-    struct limine_hhdm_response *hhdm = hhdm_request.response;
-    struct limine_memmap_response *memmap = memmap_request.response;
-    struct limine_mp_response *mp = mp_request.response;
-    struct limine_rsdp_response *rsdp = rsdp_request.response;
+    struct limine_bootloader_info_response *bootloader_info =
+        bootloader_info_req.response;
+    struct limine_executable_address_response *executable_addr =
+        executable_addr_req.response;
+    struct limine_executable_file_response *executable_file =
+        executable_file_req.response;
+    struct limine_framebuffer_response *fb = fb_req.response;
+    struct limine_hhdm_response *hhdm = hhdm_req.response;
+    struct limine_memmap_response *memmap = memmap_req.response;
+    struct limine_mp_response *mp = mp_req.response;
+    struct limine_rsdp_response *rsdp = rsdp_req.response;
 
     mp_init_early(mp);
     cpuid_init();

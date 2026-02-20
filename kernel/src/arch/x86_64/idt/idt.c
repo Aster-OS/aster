@@ -3,10 +3,11 @@
 #include "arch/x86_64/gdt/gdt_selectors.h"
 #include "arch/x86_64/idt/idt.h"
 #include "klog/klog.h"
+#include "lib/compiler.h"
 
 static const uint8_t IDT_DESC_ATTR = 0x8e;
 
-struct __attribute__((packed)) idt_descriptor_t {
+struct idt_descriptor_t {
     uint16_t addr_0_15;
     uint16_t dest_cs;
     uint8_t ist;
@@ -14,14 +15,14 @@ struct __attribute__((packed)) idt_descriptor_t {
     uint16_t addr_16_31;
     uint32_t addr_32_63;
     uint32_t reserved;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) idtr_t {
+struct idtr_t {
     uint16_t limit;
     uint64_t base;
-};
+} ASTER_PACKED;
 
-static __attribute__((aligned(8))) struct idt_descriptor_t idt[IDT_MAX_DESCRIPTORS];
+ASTER_ALIGNED(8) static struct idt_descriptor_t idt[IDT_MAX_DESCRIPTORS];
 static struct idtr_t idtr;
 
 extern void *isr_array[];

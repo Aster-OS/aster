@@ -6,20 +6,21 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/compiler.h"
 #include "memory/kmalloc/kmalloc.h"
 
-struct __attribute__((packed)) madt_entry_t {
+struct madt_entry_t {
     uint8_t type;
     uint8_t length;
     uint8_t start[];
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) madt_t {
+struct madt_t {
     struct sdt_hdr_t hdr;
     uint32_t lapic_address;
     uint32_t flags;
     uint8_t entries[];
-};
+} ASTER_PACKED;
 
 // this flag indicates that the system has a PC-AT-compatible dual-8259 setup
 // this flag is ignored and the PICs are disabled anyways

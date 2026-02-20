@@ -1,9 +1,10 @@
 #pragma once
 
 #include "arch/x86_64/interrupts/interrupts.h"
+#include "lib/compiler.h"
 
-__attribute__((noreturn))
+ASTER_NORETURN
 void kpanic(const char *reason, ...);
 
-__attribute__((noreturn))
+ASTER_NORETURN
 void kpanic_int_ctx(struct int_ctx_t *ctx, const char *reason, ...);

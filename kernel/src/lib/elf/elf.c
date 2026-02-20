@@ -1,11 +1,12 @@
 #include <stddef.h>
 
+#include "lib/compiler.h"
 #include "lib/elf/elf.h"
 #include "lib/strutil.h"
 
 #define EI_NIDENT 16
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     unsigned char e_ident[EI_NIDENT];
     Elf64_Half e_type;
     Elf64_Half e_machine;
@@ -20,7 +21,7 @@ typedef struct __attribute__((packed)) {
     Elf64_Half e_shentsize;
     Elf64_Half e_shnum;
     Elf64_Half e_shstrndx;
-} Elf64_Ehdr;
+} ASTER_PACKED Elf64_Ehdr;
 
 void elf_find_section(void *file, char *search_name, Elf64_Shdr **shdr, Elf64_Half *shndx) {
     Elf64_Ehdr *elf_hdr = (Elf64_Ehdr *) file;

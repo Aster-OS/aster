@@ -1,31 +1,32 @@
 #pragma once
 
 #include <stdint.h>
+#include "lib/compiler.h"
 
-struct __attribute__((packed)) ioapic_t {
+struct ioapic_t {
     uint8_t id;
     uint8_t reserved;
     uint32_t address;
     uint32_t gsi_base;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) ioapic_iso_t {
+struct ioapic_iso_t {
     uint8_t bus;
     uint8_t irq;
     uint32_t gsi;
     uint16_t flags;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) ioapic_nmi_t {
+struct ioapic_nmi_t {
     uint16_t flags;
     uint32_t gsi;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) lapic_nmi_t {
+struct lapic_nmi_t {
     uint8_t acpi_id;
     uint16_t flags;
     uint8_t lint;
-};
+} ASTER_PACKED;
 
 enum madt_pin_polarity {
     MADT_ACTIVE_HIGH = 0x1,

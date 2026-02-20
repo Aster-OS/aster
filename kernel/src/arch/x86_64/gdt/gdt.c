@@ -3,6 +3,7 @@
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/gdt/gdt_selectors.h"
 #include "klog/klog.h"
+#include "lib/compiler.h"
 #include "lib/spinlock/spinlock.h"
 #include "mp/cpu.h"
 
@@ -16,16 +17,16 @@ static inline uint8_t gdt_dpl(uint8_t dpl) {
     return dpl << 5;
 }
 
-struct __attribute__((packed)) seg_descriptor_t {
+struct seg_descriptor_t {
     uint16_t limit_0_15;
     uint16_t base_0_15;
     uint8_t base_16_23;
     uint8_t type;
     uint8_t limit_16_19_and_flags;
     uint8_t base_24_31;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) tss_descriptor_t {
+struct tss_descriptor_t {
     uint16_t limit_0_15;
     uint16_t base_0_15;
     uint8_t base_16_23;
@@ -34,15 +35,15 @@ struct __attribute__((packed)) tss_descriptor_t {
     uint8_t base_24_31;
     uint32_t base_32_63;
     uint32_t reserved;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) gdtr_t {
+struct gdtr_t {
     uint16_t limit;
     uint64_t base;
-};
+} ASTER_PACKED;
 
 // null, kcode, kdata, ucode, udata, tss (counts as 2 entries)
-static __attribute__((aligned(8))) struct seg_descriptor_t gdt[7];
+static struct seg_descriptor_t gdt[7] ASTER_ALIGNED(8);
 static uint8_t gdt_index;
 
 static struct gdtr_t gdtr;

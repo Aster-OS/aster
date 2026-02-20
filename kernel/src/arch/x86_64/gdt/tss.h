@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include "lib/compiler.h"
 
-struct __attribute__((packed)) tss_t {
+struct tss_t {
     uint32_t reserved0;
     uint64_t rsp[3];
     uint64_t reserved1;
@@ -10,4 +11,4 @@ struct __attribute__((packed)) tss_t {
     uint64_t reserved2;
     uint16_t reserved3;
     uint16_t iopb_offset;
-};
+} ASTER_PACKED;

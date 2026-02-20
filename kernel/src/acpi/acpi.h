@@ -2,8 +2,9 @@
 
 #include <stdint.h>
 
+#include "lib/compiler.h"
 
-struct __attribute__((packed)) sdt_hdr_t {
+struct sdt_hdr_t {
     char signature[4];
     uint32_t length;
     uint8_t revision;
@@ -13,7 +14,7 @@ struct __attribute__((packed)) sdt_hdr_t {
     uint32_t oem_revision;
     uint32_t creator_id;
     uint32_t creator_revision;
-};
+} ASTER_PACKED;
 
 uint8_t acpi_calc_table_checksum(void *table);
 struct sdt_hdr_t *acpi_find_table(char *signature);

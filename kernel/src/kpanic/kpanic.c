@@ -4,6 +4,7 @@
 #include "arch/x86_64/apic/lapic.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/compiler.h"
 #include "lib/nanoprintf/nanoprintf.h"
 #include "lib/stacktrace/stacktrace.h"
 #include "lib/spinlock/spinlock.h"
@@ -30,8 +31,8 @@ static void print_int_ctx(struct int_ctx_t *ctx) {
 
 static struct spinlock_t panic_lock = SPINLOCK_STATIC_INIT;
 
-__attribute__((noreturn))
-static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va) {
+ASTER_NORETURN static inline void kvpanic(struct int_ctx_t *ctx,
+                                          const char *reason, va_list va) {
     lapic_ipi_all_no_self(mp_get_halt_vector());
     timer_sleep_ns(100000);
 
@@ -50,7 +51,7 @@ static inline void kvpanic(struct int_ctx_t *ctx, const char *reason, va_list va
     while (1) halt();
 }
 
-__attribute__((noreturn))
+ASTER_NORETURN
 void kpanic(const char *reason, ...) {
     interrupts_set(false);
     spin_lock(&panic_lock);
@@ -61,7 +62,7 @@ void kpanic(const char *reason, ...) {
     va_end(va);
 }
 
-__attribute__((noreturn))
+ASTER_NORETURN
 void kpanic_int_ctx(struct int_ctx_t *ctx, const char *reason, ...) {
     interrupts_set(false);
     spin_lock(&panic_lock);

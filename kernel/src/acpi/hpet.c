@@ -4,9 +4,10 @@
 #include "acpi/hpet.h"
 #include "arch/x86_64/asm.h"
 #include "klog/klog.h"
+#include "lib/compiler.h"
 #include "memory/vmm/vmm.h"
 
-struct __attribute__((packed)) hpet_table_t {
+struct hpet_table_t {
     struct sdt_hdr_t hdr;
     uint32_t event_timer_block_id;
     uint8_t address_space_id;
@@ -17,16 +18,16 @@ struct __attribute__((packed)) hpet_table_t {
     uint8_t hpet_number;
     uint16_t minimum_clock_tick;
     uint8_t page_protection;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) hpet_timer_t {
+struct hpet_timer_t {
     uint64_t config_and_capabilities;
     uint64_t comparator_value;
     uint64_t fsb_int_route;
     uint64_t reserved;
-};
+} ASTER_PACKED;
 
-struct __attribute__((packed)) hpet_t {
+struct hpet_t {
     uint64_t general_capabilities;
     uint64_t reserved0;
     volatile uint64_t general_config;
@@ -36,7 +37,7 @@ struct __attribute__((packed)) hpet_t {
     uint64_t main_counter_val;
     uint64_t reserved3;
     struct hpet_timer_t timers[];
-};
+} ASTER_PACKED;
 
 static struct hpet_t *hpet;
 static uint64_t hpet_freq;
