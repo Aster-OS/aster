@@ -13,6 +13,10 @@ HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
 
+.PHONY: build
+build:
+	bear -- $(MAKE) all -j$(shell nproc)
+
 .PHONY: all
 all: edk2-ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
 
