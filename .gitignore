@@ -1,5 +1,5 @@
 /limine
-/ovmf
 /qemu-runner
+edk2-ovmf/
 *.hdd
 *.iso

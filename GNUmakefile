@@ -14,18 +14,13 @@ HOST_LDFLAGS :=
 HOST_LIBS :=
 
 .PHONY: all
-all: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
+all: edk2-ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).iso
 
 .PHONY: all-hdd
-all-hdd: ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).hdd
+all-hdd: edk2-ovmf/ovmf-code-$(ARCH).fd $(IMAGE_NAME).hdd
 
-ovmf/ovmf-code-$(ARCH).fd:
-	mkdir -p ovmf
-	curl -Lo $@ https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/ovmf-code-$(ARCH).fd
-	case "$(ARCH)" in \
-		aarch64) dd if=/dev/zero of=$@ bs=1 count=0 seek=67108864 2>/dev/null;; \
-		riscv64) dd if=/dev/zero of=$@ bs=1 count=0 seek=33554432 2>/dev/null;; \
-	esac
+edk2-ovmf/ovmf-code-$(ARCH).fd:
+	curl -L https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/edk2-ovmf.tar.gz | gunzip | tar -xf -
 
 limine/limine:
 	rm -rf limine
@@ -127,4 +122,4 @@ clean:
 .PHONY: distclean
 distclean:
 	$(MAKE) -C kernel distclean
-	rm -rf iso_root kernel-deps limine ovmf qemu-runner *.hdd *.iso
+	rm -rf iso_root kernel-deps limine edk2-ovmf qemu-runner *.hdd *.iso

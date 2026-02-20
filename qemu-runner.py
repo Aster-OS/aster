@@ -49,7 +49,7 @@ def main():
     if args.bios:
         qemu_flags += "-boot d".split()
     else:
-        qemu_flags += f"-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-{args.arch}.fd,readonly=on".split()
+        qemu_flags += f"-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-{args.arch}.fd,readonly=on".split()
 
     # --debug
     if args.debug:
