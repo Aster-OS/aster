@@ -1,13 +1,15 @@
+#include "arch/x86_64/gdt/gdt.h"
+
 #include <stdint.h>
 
-#include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/gdt/gdt_selectors.h"
 #include "klog/klog.h"
 #include "lib/compiler.h"
 #include "lib/spinlock/spinlock.h"
 #include "mp/cpu.h"
 
-static const uint8_t GDT_DESC_TYPE_CODE = 1 << 7 | 1 << 4 | 1 << 3 | 1 << 1 | 1 << 0;
+static const uint8_t GDT_DESC_TYPE_CODE =
+    1 << 7 | 1 << 4 | 1 << 3 | 1 << 1 | 1 << 0;
 static const uint8_t GDT_DESC_TYPE_DATA = 1 << 7 | 1 << 4 | 1 << 1 | 1 << 0;
 static const uint8_t GDT_DESC_TYPE_TSS_AVL = 1 << 7 | 1 << 3 | 1 << 0;
 
@@ -62,7 +64,8 @@ static void gdt_add_seg_descriptor(uint8_t type, uint8_t flags) {
 }
 
 static void gdt_set_tss_descriptor(struct tss_t *tss) {
-    struct tss_descriptor_t *tss_desc = (struct tss_descriptor_t *) &gdt[gdt_index];
+    struct tss_descriptor_t *tss_desc =
+        (struct tss_descriptor_t *) &gdt[gdt_index];
 
     uint64_t tss_base = (uint64_t) tss;
     uint32_t tss_limit = sizeof(struct tss_t) - 1;
@@ -79,34 +82,38 @@ static void gdt_set_tss_descriptor(struct tss_t *tss) {
 
 void gdt_init(void) {
     gdt_add_seg_descriptor(0, 0);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_dpl(0), GDT_DESC_FLAG_LONG_MODE);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_dpl(0), GDT_DESC_FLAG_LONG_MODE);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_dpl(3), GDT_DESC_FLAG_LONG_MODE);
-    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_dpl(3), GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_dpl(0),
+                           GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_dpl(0),
+                           GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_CODE | gdt_dpl(3),
+                           GDT_DESC_FLAG_LONG_MODE);
+    gdt_add_seg_descriptor(GDT_DESC_TYPE_DATA | gdt_dpl(3),
+                           GDT_DESC_FLAG_LONG_MODE);
 
-    gdtr.base = (uint64_t) &gdt,
-    gdtr.limit = sizeof(gdt) - 1;
+    gdtr.base = (uint64_t) &gdt, gdtr.limit = sizeof(gdt) - 1;
 
     klog_info("GDT initialized");
 }
 
 void gdt_reload_segments(void) {
-    __asm__ volatile(
-        "lgdt %0;"
-        "push %1;"
-        "lea reload_data_segments(%%rip), %%rax;"
-        "push %%rax;"
-        "lretq;"
-        "reload_data_segments:"
-        "mov %2, %%ax;"
-        "mov %%ax, %%ss;"
-        "mov $0x0, %%ax;"
-        "mov %%ax, %%ds;"
-        "mov %%ax, %%es;"
-        "mov %%ax, %%fs;"
-        "mov %%ax, %%gs;"
-        : : "m" (gdtr), "i" (GDT_SELECTOR_KERNEL_CODE), "i" (GDT_SELECTOR_KERNEL_DATA) : "%rax", "memory"
-    );
+    __asm__ volatile("lgdt %0;"
+                     "push %1;"
+                     "lea reload_data_segments(%%rip), %%rax;"
+                     "push %%rax;"
+                     "lretq;"
+                     "reload_data_segments:"
+                     "mov %2, %%ax;"
+                     "mov %%ax, %%ss;"
+                     "mov $0x0, %%ax;"
+                     "mov %%ax, %%ds;"
+                     "mov %%ax, %%es;"
+                     "mov %%ax, %%fs;"
+                     "mov %%ax, %%gs;"
+                     :
+                     : "m"(gdtr), "i"(GDT_SELECTOR_KERNEL_CODE),
+                       "i"(GDT_SELECTOR_KERNEL_DATA)
+                     : "%rax", "memory");
 }
 
 void gdt_reload_tss(void) {
@@ -117,7 +124,7 @@ void gdt_reload_tss(void) {
     get_cpu()->tss.iopb_offset = sizeof(struct tss_t);
     gdt_set_tss_descriptor(&get_cpu()->tss);
 
-    __asm__ volatile("ltr %%ax;" : : "a" (GDT_SELECTOR_TSS));
+    __asm__ volatile("ltr %%ax;" : : "a"(GDT_SELECTOR_TSS));
 
     spin_unlock(&tss_desc_lock);
 }

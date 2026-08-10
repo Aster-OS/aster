@@ -1,6 +1,7 @@
-#include <stdint.h>
-
 #include "lib/memutil.h"
+
+#include <stddef.h>
+#include <stdint.h>
 
 int memcmp(const void *s1, const void *s2, size_t n) {
     const uint8_t *p1 = (const uint8_t *) s1;
@@ -17,7 +18,7 @@ int memcmp(const void *s1, const void *s2, size_t n) {
 
 void *memcpy(void *dest, const void *src, size_t n) {
     uint8_t *pdest = (uint8_t *) dest;
-    const uint8_t *psrc = (const uint8_t *)src;
+    const uint8_t *psrc = (const uint8_t *) src;
 
     for (size_t i = 0; i < n; i++) {
         pdest[i] = psrc[i];
@@ -36,7 +37,7 @@ void *memmove(void *dest, const void *src, size_t n) {
         }
     } else if (src < dest) {
         for (size_t i = n; i > 0; i--) {
-            pdest[i-1] = psrc[i-1];
+            pdest[i - 1] = psrc[i - 1];
         }
     }
 

@@ -1,7 +1,13 @@
 #include "dev/tty/flanterm.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "dev/tty/tty.h"
 #include "kassert/kassert.h"
-#include "lib/flanterm/flanterm.h"
 #include "lib/flanterm/backends/fb.h"
+#include "lib/flanterm/flanterm.h"
+#include "limine.h"
 
 static struct flanterm_context *ft_ctx;
 static struct tty_t flanterm_tty;
@@ -15,6 +21,7 @@ static void putchar(char c) {
 }
 
 struct tty_t *flanterm_tty_init(struct limine_framebuffer *fb) {
+    // clang-format off
     ft_ctx = flanterm_fb_init(
         NULL,
         NULL,
@@ -30,9 +37,10 @@ struct tty_t *flanterm_tty_init(struct limine_framebuffer *fb) {
         0, 0,
         0
     );
+    // clang-format on
 
     kassert(ft_ctx != NULL);
-    
+
     flanterm_tty.do_flush = true;
     flanterm_tty.flush = flush;
     flanterm_tty.putchar = putchar;

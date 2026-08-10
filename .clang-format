@@ -1,0 +1,21 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossComments: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: "^<.*>"
+    Priority: 1
+    SortPriority: 1
+  - Regex: '^".*"'
+    Priority: 2
+    SortPriority: 2
+IndentCaseLabels: true
+PointerAlignment: Right
+QualifierAlignment: Right
+SortIncludes:
+  Enabled: true
+SpaceAfterCStyleCast: true

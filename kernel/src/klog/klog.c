@@ -1,18 +1,23 @@
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
+
+#include "dev/tty/tty.h"
+#include "klog/klog_lvl.h"
 
 #define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
-#define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
-#define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 0
-#define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS 1
-#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 1
-#define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
+#define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS   1
+#define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS       0
+#define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS       1
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS      1
+#define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS   0
 
 // compile nanoprintf in this translation unit
 #define NANOPRINTF_IMPLEMENTATION
-#include "lib/nanoprintf/nanoprintf.h"
-#include "lib/spinlock/spinlock.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
+#include "lib/nanoprintf/nanoprintf.h"
+#include "lib/spinlock/spinlock.h"
 
 #define LOG_FATAL_CLR "\033[31m"
 #define LOG_ERROR_CLR "\033[91m"
@@ -72,7 +77,9 @@ void klog(enum klog_lvl lvl, ...) {
 
     for (size_t i = 0; i < tty_count; i++) {
         struct tty_t *tty = ttys[i];
-        if (tty->do_flush) tty->flush();
+        if (tty->do_flush) {
+            tty->flush();
+        }
     }
 
     spin_unlock_irqrestore(&klog_lock);

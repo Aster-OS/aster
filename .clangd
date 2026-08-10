@@ -1,0 +1,6 @@
+Diagnostics:
+  Includes:
+    IgnoreHeader:
+      - "string.h"
+      - "threads.h"
+  MissingIncludes: Strict

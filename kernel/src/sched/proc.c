@@ -1,5 +1,7 @@
-#include "sched/thread.h"
 #include "sched/proc.h"
+
+#include "lib/list/dlist.h"
+#include "sched/thread.h"
 
 void proc_threads_init(struct proc_t *proc) {
     DLIST_INIT_SYNCED(proc->threads);

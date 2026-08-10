@@ -1,13 +1,18 @@
-#include <stdarg.h>
-
-#include "arch/x86_64/asm.h"
-#include "arch/x86_64/apic/lapic.h"
-#include "klog/klog.h"
 #include "kpanic/kpanic.h"
+
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "arch/x86_64/apic/lapic.h"
+#include "arch/x86_64/asm.h"
+#include "arch/x86_64/interrupts/interrupts.h"
+#include "klog/klog.h"
 #include "lib/compiler.h"
 #include "lib/nanoprintf/nanoprintf.h"
-#include "lib/stacktrace/stacktrace.h"
 #include "lib/spinlock/spinlock.h"
+#include "lib/stacktrace/stacktrace.h"
+#include "mp/cpu.h"
 #include "mp/mp.h"
 #include "timer/timer.h"
 
@@ -32,7 +37,7 @@ static void print_int_ctx(struct int_ctx_t *ctx) {
 static struct spinlock_t panic_lock = SPINLOCK_STATIC_INIT;
 
 ASTER_NORETURN static inline void kvpanic(struct int_ctx_t *ctx,
-                                          const char *reason, va_list va) {
+                                          char const *reason, va_list va) {
     lapic_ipi_all_no_self(mp_get_halt_vector());
     timer_sleep_ns(100000);
 
@@ -48,11 +53,12 @@ ASTER_NORETURN static inline void kvpanic(struct int_ctx_t *ctx,
         klog_fatal("No interrupt context provided");
     }
 
-    while (1) halt();
+    while (1)
+        halt();
 }
 
 ASTER_NORETURN
-void kpanic(const char *reason, ...) {
+void kpanic(char const *reason, ...) {
     interrupts_set(false);
     spin_lock(&panic_lock);
 
@@ -63,7 +69,7 @@ void kpanic(const char *reason, ...) {
 }
 
 ASTER_NORETURN
-void kpanic_int_ctx(struct int_ctx_t *ctx, const char *reason, ...) {
+void kpanic_int_ctx(struct int_ctx_t *ctx, char const *reason, ...) {
     interrupts_set(false);
     spin_lock(&panic_lock);
 

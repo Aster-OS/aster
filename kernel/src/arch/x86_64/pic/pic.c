@@ -1,8 +1,9 @@
+#include "arch/x86_64/pic/pic.h"
+
 #include <stdint.h>
 
 #include "arch/x86_64/asm.h"
 #include "arch/x86_64/interrupts/interrupts.h"
-#include "arch/x86_64/pic/pic.h"
 #include "klog/klog.h"
 
 static const uint16_t PIC1_COMMAND_PORT = 0x20;
@@ -36,7 +37,7 @@ void pic_disable(void) {
 
     // mask all IRQ's
     outb(PIC1_DATA_PORT, 0xff);
-    outb(PIC2_DATA_PORT, 0xff);    
+    outb(PIC2_DATA_PORT, 0xff);
 
     klog_info("Disabled PIC");
 }

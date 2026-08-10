@@ -1,7 +1,9 @@
+#include "arch/x86_64/apic/ioapic.h"
+
 #include <stddef.h>
+#include <stdint.h>
 
 #include "acpi/madt.h"
-#include "arch/x86_64/apic/ioapic.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
@@ -19,12 +21,14 @@ enum ioapic_regs {
 };
 
 static uint32_t ioapic_read(uint32_t ioapic_addr, uint8_t reg) {
-    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) = reg;
+    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) =
+        reg;
     return *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_get_hhdm_offset());
 }
 
 static void ioapic_write(uint32_t ioapic_addr, uint8_t reg, uint32_t val) {
-    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) = reg;
+    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) =
+        reg;
     *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_get_hhdm_offset()) = val;
 }
 
@@ -46,9 +50,11 @@ void ioapic_init(void) {
         vmm_map_hhdm(ioapic->address);
 
         uint32_t first_gsi = ioapic->gsi_base;
-        uint32_t last_gsi = first_gsi + ioapic_get_max_redir_entry(ioapic->address);
+        uint32_t last_gsi =
+            first_gsi + ioapic_get_max_redir_entry(ioapic->address);
 
-        klog_info("IOAPIC id %llu initialized (GSIs %llu-%llu)", ioapic->id, first_gsi, last_gsi);
+        klog_info("IOAPIC id %llu initialized (GSIs %llu-%llu)", ioapic->id,
+                  first_gsi, last_gsi);
     }
 }
 

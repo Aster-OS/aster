@@ -1,3 +1,7 @@
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "acpi/acpi.h"
 #include "acpi/madt.h"
 #include "arch/x86_64/apic/ioapic.h"
@@ -8,22 +12,24 @@
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "dev/tty/debugcon.h"
 #include "dev/tty/flanterm.h"
-// #include "dev/tty/serial.h"
+#include "dev/tty/tty.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
+#include "klog/klog_lvl.h"
 #include "lib/compiler.h"
 #include "lib/elf/symbols.h"
 #include "limine.h"
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
+#include "mp/cpu.h"
 #include "mp/mp.h"
 #include "sched/sched.h"
 #include "timer/timer.h"
 
 ASTER_USED
 ASTER_SECTION(".limine_requests")
-static volatile uint64_t limine_base_revision[] = LIMINE_BASE_REVISION(4);
+static uint64_t volatile limine_base_revision[] = LIMINE_BASE_REVISION(4);
 
 ASTER_USED
 ASTER_SECTION(".limine_requests")
@@ -69,15 +75,16 @@ static volatile struct limine_rsdp_request rsdp_req = {
 
 ASTER_USED
 ASTER_SECTION(".limine_requests_start")
-static volatile uint64_t limine_reqs_start_marker[] =
+static uint64_t volatile limine_reqs_start_marker[] =
     LIMINE_REQUESTS_START_MARKER;
 
 ASTER_USED
 ASTER_SECTION(".limine_requests_end")
-static volatile uint64_t limine_reqs_end_marker[] = LIMINE_REQUESTS_END_MARKER;
+static uint64_t volatile limine_reqs_end_marker[] = LIMINE_REQUESTS_END_MARKER;
 
 static void *test_thread(void *arg) {
-    for (uint64_t i = 0; i < (uint64_t) arg; i++) {}
+    for (uint64_t i = 0; i < (uint64_t) arg; i++) {
+    }
     return NULL;
 }
 
@@ -124,6 +131,7 @@ void kernel_entry(void) {
     flanterm_tty->lvl = KLOG_LVL_INFO;
     klog_register_tty(flanterm_tty);
 
+    // HACK:
     // struct tty_t *serial_tty = serial_tty_init();
     // if (serial_tty != NULL) {
     //     serial_tty->lvl = KLOG_LVL_DEBUG;
@@ -136,11 +144,12 @@ void kernel_entry(void) {
         klog_register_tty(debugcon_tty);
     }
 
-    klog_info("Aster booted by %s v%s", bootloader_info->name, bootloader_info->version);
+    klog_info("Aster booted by %s v%s", bootloader_info->name,
+              bootloader_info->version);
     klog_info("Built at commit \"%s\"", COMMIT_HASH);
 
     char cpu_brand_str[48];
-    if (cpu_get_brand_str(cpu_brand_str)) {;
+    if (cpu_get_brand_str(cpu_brand_str)) {
         klog_info("CPU is %.48s", cpu_brand_str);
     }
 

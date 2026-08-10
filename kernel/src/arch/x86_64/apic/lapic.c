@@ -1,11 +1,16 @@
-#include "acpi/madt.h"
 #include "arch/x86_64/apic/lapic.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "acpi/madt.h"
+#include "arch/x86_64/asm.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "arch/x86_64/msr.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/compiler.h"
 #include "memory/vmm/vmm.h"
+#include "mp/cpu.h"
 #include "mp/mp.h"
 #include "timer/timer.h"
 
@@ -28,44 +33,41 @@ enum lapic_regs {
 static const uint16_t X2APIC_REG_SELF_IPI = 0x83f;
 
 enum lapic_lvt_deliv_status {
-    LVT_DELIV_STATUS_SENT    = 0x0,
+    LVT_DELIV_STATUS_SENT = 0x0,
     LVT_DELIV_STATUS_PENDING = 0x1000
 };
 
-enum lapic_lvt_pin_polarity {
-    LVT_ACTIVE_HIGH = 0x0,
-    LVT_ACTIVE_LOW  = 0x2000
-};
+enum lapic_lvt_pin_polarity { LVT_ACTIVE_HIGH = 0x0, LVT_ACTIVE_LOW = 0x2000 };
 
 enum lapic_lvt_trigger_mode {
-    LVT_TRIGGER_EDGE  = 0x0,
+    LVT_TRIGGER_EDGE = 0x0,
     LVT_TRIGGER_LEVEL = 0x8000
 };
 
 enum lapic_deliv_mode {
-    LAPIC_DELIV_MODE_FIXED  = 0x0,
-    LAPIC_DELIV_MODE_SMI    = 0x200,
-    LAPIC_DELIV_MODE_NMI    = 0x400,
-    LAPIC_DELIV_MODE_INIT   = 0x500,
+    LAPIC_DELIV_MODE_FIXED = 0x0,
+    LAPIC_DELIV_MODE_SMI = 0x200,
+    LAPIC_DELIV_MODE_NMI = 0x400,
+    LAPIC_DELIV_MODE_INIT = 0x500,
     LAPIC_DELIV_MODE_EXTINT = 0x700
 };
 
 static const uint32_t LVT_MASKED ASTER_USED = 0x10000;
 
 enum lapic_lvt_timer_mode {
-    LVT_TIMER_ONE_SHOT     = 0x0,
-    LVT_TIMER_PERIODIC     = 0x20000,
+    LVT_TIMER_ONE_SHOT = 0x0,
+    LVT_TIMER_PERIODIC = 0x20000,
     LVT_TIMER_TSC_DEADLINE = 0x40000
 };
 
 enum lapic_icr_dest_mode {
     ICR_DEST_MODE_PHYSICAL = 0x0,
-    ICR_DEST_MODE_LOGICAL  = 0x800
+    ICR_DEST_MODE_LOGICAL = 0x800
 };
 
 enum lapic_icr_shorthand {
-    ICR_SHORTHAND_SELF        = 0x40000,
-    ICR_SHORTHAND_ALL         = 0x80000,
+    ICR_SHORTHAND_SELF = 0x40000,
+    ICR_SHORTHAND_ALL = 0x80000,
     ICR_SHORTHAND_ALL_NO_SELF = 0xc0000
 };
 
@@ -82,7 +84,8 @@ static inline uint32_t lapic_read(uint16_t reg) {
     if (mp_x2apic_enabled()) {
         return rdmsr(reg_to_x2apic_msr(reg));
     } else {
-        return *(volatile uint32_t *) (lapic_addr + reg + vmm_get_hhdm_offset());
+        return *(volatile uint32_t *) (lapic_addr + reg +
+                                       vmm_get_hhdm_offset());
     }
 }
 
@@ -112,7 +115,8 @@ void lapic_init(void) {
 
 void lapic_init_cpu(void) {
     uint32_t edx, unused;
-    if (!cpuid(0x1, 0x0, &unused, &unused, &unused, &edx) || (edx & (1 << 9)) == 0) {
+    if (!cpuid(0x1, 0x0, &unused, &unused, &unused, &edx) ||
+        (edx & (1 << 9)) == 0) {
         kpanic("CPU does not have a LAPIC");
     }
 
@@ -124,20 +128,24 @@ void lapic_init_cpu(void) {
     uint64_t lapic_nmi_count = madt_get_lapic_nmi_count();
     for (uint64_t i = 0; i < lapic_nmi_count; i++) {
         struct lapic_nmi_t *lapic_nmi = lapic_nmis[i];
-        if (lapic_nmi->acpi_id == 0xff || lapic_nmi->acpi_id == get_cpu()->acpi_id) {
+        if (lapic_nmi->acpi_id == 0xff ||
+            lapic_nmi->acpi_id == get_cpu()->acpi_id) {
             uint16_t lvt_flags = 0;
             if ((lapic_nmi->flags & MADT_ACTIVE_HIGH) == MADT_ACTIVE_HIGH) {
                 lvt_flags = LVT_ACTIVE_HIGH;
-            } else if ((lapic_nmi->flags & MADT_ACTIVE_LOW) == MADT_ACTIVE_LOW) {
+            } else if ((lapic_nmi->flags & MADT_ACTIVE_LOW) ==
+                       MADT_ACTIVE_LOW) {
                 lvt_flags = LVT_ACTIVE_LOW;
             }
 
             // trigger mode is always edge sensitive for NMI delivery mode
 
             if (lapic_nmi->lint == 0) {
-                lapic_write(REG_LVT_LINT0, lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
+                lapic_write(REG_LVT_LINT0,
+                            lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
             } else if (lapic_nmi->lint == 1) {
-                lapic_write(REG_LVT_LINT1, lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
+                lapic_write(REG_LVT_LINT1,
+                            lvt_flags | LAPIC_DELIV_MODE_NMI | 0x4);
             }
         }
     }
@@ -147,11 +155,13 @@ void lapic_init_cpu(void) {
 
 void lapic_ipi(uint8_t vec, uint32_t dest_lapic_id) {
     if (mp_x2apic_enabled()) {
-        uint64_t icr = ((uint64_t) dest_lapic_id << 32) | LAPIC_DELIV_MODE_FIXED | vec;
+        uint64_t icr =
+            ((uint64_t) dest_lapic_id << 32) | LAPIC_DELIV_MODE_FIXED | vec;
         // ICR is 64 bits in x2APIC mode
         wrmsr(reg_to_x2apic_msr(REG_ICR_LOW), icr);
     } else {
-        uint64_t icr = ((uint64_t) dest_lapic_id << 56) | LAPIC_DELIV_MODE_FIXED | vec;
+        uint64_t icr =
+            ((uint64_t) dest_lapic_id << 56) | LAPIC_DELIV_MODE_FIXED | vec;
         lapic_write(REG_ICR_HIGH, icr >> 32);
         lapic_write(REG_ICR_LOW, icr & 0xffff);
     }
@@ -212,7 +222,8 @@ void lapic_timer_calibrate(void) {
     get_cpu()->lapic_calibration_ticks = start_ticks - end_ticks;
 
     klog_info("CPU %llu LAPIC timer calibrated: %llu ticks in %llu ns",
-            get_cpu()->id, get_cpu()->lapic_calibration_ticks, LAPIC_CALIBRATION_NS);
+              get_cpu()->id, get_cpu()->lapic_calibration_ticks,
+              LAPIC_CALIBRATION_NS);
 }
 
 void lapic_timer_one_shot(uint64_t ns, uint8_t vec) {

@@ -1,8 +1,11 @@
+#include "lib/elf/symbols.h"
+
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "klog/klog.h"
 #include "lib/elf/elf.h"
-#include "lib/elf/symbols.h"
 #include "memory/kmalloc/kmalloc.h"
 
 struct symbol_t {
@@ -23,7 +26,8 @@ char *symbols_get_func_name(void *addr) {
         return "*uninitialized*";
     }
 
-    if (addr < funcs[0].addr || (uintptr_t) addr >= (uintptr_t) &__TEXT_MAX_ADDR) {
+    if (addr < funcs[0].addr ||
+        (uintptr_t) addr >= (uintptr_t) &__TEXT_MAX_ADDR) {
         goto unknown_func;
     }
 
@@ -72,7 +76,8 @@ void symbols_init(void *file) {
 
         struct symbol_t *func = &funcs[funcs_index++];
         func->addr = (void *) sym->st_value;
-        func->name = (char *) ((uintptr_t) file + strtab_hdr->sh_offset + sym->st_name);
+        func->name =
+            (char *) ((uintptr_t) file + strtab_hdr->sh_offset + sym->st_name);
     }
 
     for (size_t i = 0; i < funcs_count - 1; i++) {

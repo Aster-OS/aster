@@ -1,5 +1,9 @@
-#include "arch/x86_64/idt/idt.h"
 #include "arch/x86_64/interrupts/interrupts.h"
+#include <stdint.h>
+
+#include <stdint.h>
+
+#include "arch/x86_64/idt/idt.h"
 #include "arch/x86_64/pic/pic.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
@@ -14,11 +18,11 @@
 // 0xf0 - 0xff | Reserved for kernel use
 // 0xf0 - LAPIC spurious interrupt
 
-static const uint8_t IRQ_COUNT_PER_PIC = 8;
-static const uint8_t ISA_IRQ_OFFSET = 0x30;
+static uint8_t const IRQ_COUNT_PER_PIC = 8;
+static uint8_t const ISA_IRQ_OFFSET = 0x30;
 
-static const uint8_t USABLE_VECTORS_START = 0x40;
-static const uint8_t USABLE_VECTORS_END   = 0xef;
+static uint8_t const USABLE_VECTORS_START = 0x40;
+static uint8_t const USABLE_VECTORS_END = 0xef;
 
 static uint16_t curr_free_vector = USABLE_VECTORS_START;
 
@@ -34,7 +38,8 @@ static void pic_irq_handler(struct int_ctx_t *ctx) {
 }
 
 static void unknown_int_handler(struct int_ctx_t *ctx) {
-    kpanic_int_ctx(ctx, "Received interrupt with no defined handler", ctx->vector);
+    kpanic_int_ctx(ctx, "Received interrupt with no defined handler",
+                   ctx->vector);
 }
 
 void common_int_handler(struct int_ctx_t *ctx) {

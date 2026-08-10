@@ -1,8 +1,10 @@
 #include "lib/strutil.h"
 
-int kstrcmp(const char *s1, const char *s2) {
-    const unsigned char *p1 = (const unsigned char *) s1;
-    const unsigned char *p2 = (const unsigned char *) s2;
+#include <stddef.h>
+
+int strcmp(char const *s1, char const *s2) {
+    unsigned char const *p1 = (unsigned char const *) s1;
+    unsigned char const *p2 = (unsigned char const *) s2;
 
     while (*p1 && *p1 == *p2) {
         ++p1;
@@ -12,23 +14,9 @@ int kstrcmp(const char *s1, const char *s2) {
     return (*p1 > *p2) - (*p2 > *p1);
 }
 
-size_t strlen(const char *s) {
-    if (!s) {
-        return 0;
-    }
-
-    const unsigned char *str = (const unsigned char *) s;
-    const unsigned char *ptr = (const unsigned char *) s;
-    while (*ptr) {
-        ptr++;
-    }
-
-    return ptr - str;
-}
-
-int strncmp(const char *s1, const char *s2, size_t n) {
-    const unsigned char *p1 = (const unsigned char *) s1;
-    const unsigned char *p2 = (const unsigned char *) s2;
+int strncmp(char const *s1, char const *s2, size_t n) {
+    unsigned char const *p1 = (unsigned char const *) s1;
+    unsigned char const *p2 = (unsigned char const *) s2;
 
     while (n && *p1 && (*p1 == *p2)) {
         ++p1;
@@ -41,4 +29,26 @@ int strncmp(const char *s1, const char *s2, size_t n) {
     } else {
         return (*p1 - *p2);
     }
+}
+
+size_t strlen(char const *s) {
+    if (!s) {
+        return 0;
+    }
+
+    unsigned char const *str = (unsigned char const *) s;
+    unsigned char const *ptr = (unsigned char const *) s;
+    while (*ptr) {
+        ptr++;
+    }
+
+    return ptr - str;
+}
+
+size_t strnlen(char const *s, size_t maxlen) {
+    size_t len = 0;
+    while (len < maxlen && s[len] != 0) {
+        len++;
+    }
+    return len;
 }

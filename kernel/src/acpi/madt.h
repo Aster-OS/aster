@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "lib/compiler.h"
 
 struct ioapic_t {
@@ -28,15 +29,9 @@ struct lapic_nmi_t {
     uint8_t lint;
 } ASTER_PACKED;
 
-enum madt_pin_polarity {
-    MADT_ACTIVE_HIGH = 0x1,
-    MADT_ACTIVE_LOW = 0x3
-};
+enum madt_pin_polarity { MADT_ACTIVE_HIGH = 0x1, MADT_ACTIVE_LOW = 0x3 };
 
-enum madt_trigger_mode {
-    MADT_TRIGGER_EDGE = 0x4,
-    MADT_TRIGGER_LEVEL = 0xc
-};
+enum madt_trigger_mode { MADT_TRIGGER_EDGE = 0x4, MADT_TRIGGER_LEVEL = 0xc };
 
 struct lapic_nmi_t **madt_get_lapic_nmis(void);
 uint16_t madt_get_lapic_nmi_count(void);

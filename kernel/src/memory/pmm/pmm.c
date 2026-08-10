@@ -1,8 +1,12 @@
+#include "memory/pmm/pmm.h"
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
 #include "lib/bitmap/bitmap.h"
-#include "memory/pmm/pmm.h"
+#include "limine.h"
 #include "memory/vmm/vmm.h"
 
 static struct bitmap_t bitmap;
@@ -14,37 +18,42 @@ void pmm_init(struct limine_memmap_response *memmap) {
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
 
-        if (entry->type == LIMINE_MEMMAP_USABLE && entry->length > largest_usable_entry->length) {
+        if (entry->type == LIMINE_MEMMAP_USABLE &&
+            entry->length > largest_usable_entry->length) {
             largest_usable_entry = entry;
         }
     }
 
     uint64_t usable_pages = largest_usable_entry->length / PAGE_SIZE;
-    
+
     // how many pages are needed to store the bitmap?
     // each bit  stores the state of an usable page  |*8
     // each byte stores the state of  8 usable pages |*PAGE_SIZE
     // each page stores the state of (8 * PAGE_SIZE) usable pages
     //   N pages store  the state of    USABLE_PAGES usable pages
     // N = USABLE_PAGES / (8*PAGE_SIZE) [aligned up!]
-    uint64_t pages_used_to_store_bitmap = div_and_align_up(usable_pages, 8 * PAGE_SIZE);
+    uint64_t pages_used_to_store_bitmap =
+        div_and_align_up(usable_pages, 8 * PAGE_SIZE);
 
     // start allocating physical memory after the bitmap
-    page_allocation_start
-        = (phys_t) (largest_usable_entry->base + pages_used_to_store_bitmap * PAGE_SIZE);
+    page_allocation_start = (phys_t) (largest_usable_entry->base +
+                                      pages_used_to_store_bitmap * PAGE_SIZE);
 
-    bitmap.start = (uint8_t *) (largest_usable_entry->base + vmm_get_hhdm_offset());
+    bitmap.start =
+        (uint8_t *) (largest_usable_entry->base + vmm_get_hhdm_offset());
     bitmap.bit_count = usable_pages - pages_used_to_store_bitmap;
     for (uint64_t i = 0; i < pages_used_to_store_bitmap * PAGE_SIZE; i++) {
         bitmap.start[i] = 0;
     }
 
-    klog_info("PMM initialized with %lluMiB of avl. phys. mem.", largest_usable_entry->length >> 20);
+    klog_info("PMM initialized with %lluMiB of avl. phys. mem.",
+              largest_usable_entry->length >> 20);
 }
 
 phys_t pmm_alloc(bool zero_contents) {
     uint64_t page_index = 0;
-    while (page_index < bitmap.bit_count && bitmap_get_bit(&bitmap, page_index)) {
+    while (page_index < bitmap.bit_count &&
+           bitmap_get_bit(&bitmap, page_index)) {
         page_index++;
     }
 
@@ -75,7 +84,7 @@ phys_t pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
     while (page_index < bitmap.bit_count - n_pages + 1) {
         if (!bitmap_get_bit(&bitmap, page_index)) {
             found_n_pages = true;
-            
+
             for (uint64_t i = page_index; i < page_index + n_pages; i++) {
                 if (bitmap_get_bit(&bitmap, i)) {
                     found_n_pages = false;
@@ -128,26 +137,26 @@ void pmm_free_n(phys_t addr, uint64_t n_pages) {
 
 static char *get_entry_type(uint64_t entry_type) {
     switch (entry_type) {
-    case LIMINE_MEMMAP_USABLE:
-        return "Usable";
-    case LIMINE_MEMMAP_RESERVED:
-        return "Reserved";
-    case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
-        return "ACPI reclaimable";
-    case LIMINE_MEMMAP_ACPI_NVS:
-        return "ACPI NVS";
-    case LIMINE_MEMMAP_BAD_MEMORY:
-        return "Bad memory";
-    case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
-        return "Bootloader reclaimable";
-    case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
-        return "Executable/Modules";
-    case LIMINE_MEMMAP_FRAMEBUFFER:
-        return "Framebuffer";
-    case LIMINE_MEMMAP_ACPI_TABLES:
-        return "ACPI tables";
-    default:
-        return "Unknown";
+        case LIMINE_MEMMAP_USABLE:
+            return "Usable";
+        case LIMINE_MEMMAP_RESERVED:
+            return "Reserved";
+        case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
+            return "ACPI reclaimable";
+        case LIMINE_MEMMAP_ACPI_NVS:
+            return "ACPI NVS";
+        case LIMINE_MEMMAP_BAD_MEMORY:
+            return "Bad memory";
+        case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
+            return "Bootloader reclaimable";
+        case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
+            return "Executable/Modules";
+        case LIMINE_MEMMAP_FRAMEBUFFER:
+            return "Framebuffer";
+        case LIMINE_MEMMAP_ACPI_TABLES:
+            return "ACPI tables";
+        default:
+            return "Unknown";
     }
 }
 

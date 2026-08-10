@@ -1,20 +1,24 @@
+#include "sched/sched.h"
+
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "arch/x86_64/apic/lapic.h"
+#include "arch/x86_64/asm.h"
 #include "arch/x86_64/interrupts/interrupts.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
-#include "lib/elf/symbols.h"
 #include "lib/list/dlist.h"
 #include "lib/memutil.h"
 #include "lib/spinlock/spinlock.h"
 #include "lib/strutil.h"
 #include "memory/kmalloc/kmalloc.h"
+#include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 #include "mp/cpu.h"
 #include "mp/mp.h"
 #include "sched/proc.h"
-#include "sched/sched.h"
 #include "sched/thread.h"
 
 static struct {
@@ -27,8 +31,8 @@ static struct {
     tid_t tid;
 } tid_generator;
 
-static const size_t KTHREAD_STACK_SIZE = 32768;
-static const uint64_t SCHED_TIMESLICE = 30000;
+static size_t const KTHREAD_STACK_SIZE = 32768;
+static uint64_t const SCHED_TIMESLICE = 30000;
 static uint8_t sched_vec;
 
 static struct proc_t *proc_kernel;
@@ -74,7 +78,8 @@ static struct thread_t *search_ready_thread(struct thread_t *start) {
     return NULL;
 }
 
-static struct thread_t *get_next_thread(struct thread_queue_t *queue, struct thread_t *curr) {
+static struct thread_t *get_next_thread(struct thread_queue_t *queue,
+                                        struct thread_t *curr) {
     struct thread_t *next;
 
     DLIST_LOCK_IRQSAVE(*queue);
@@ -108,7 +113,8 @@ static struct cpu_t *pick_cpu(void) {
 }
 
 static struct thread_t *create_thread(void *(*start)(void *), void *arg) {
-    struct thread_t *thread = (struct thread_t *) kmalloc(sizeof(struct thread_t));
+    struct thread_t *thread =
+        (struct thread_t *) kmalloc(sizeof(struct thread_t));
 
     void *kstack = kmalloc(KTHREAD_STACK_SIZE);
     uintptr_t kstack_bottom = (uintptr_t) kstack + KTHREAD_STACK_SIZE;
@@ -135,15 +141,15 @@ static struct thread_t *create_thread(void *(*start)(void *), void *arg) {
     return thread;
 }
 
-struct proc_t *sched_new_proc(const char *name, phys_t pagemap) {
+struct proc_t *sched_new_proc(char const *name, phys_t pagemap) {
     if (!pagemap) {
         kpanic("Creating process page tables is not implemented");
     }
 
     struct proc_t *proc = kmalloc(sizeof(struct proc_t));
-    size_t name_strlen = strlen(name);
+    size_t name_strlen = kstrlen(name);
     proc->name = kmalloc(name_strlen);
-    memcpy(proc->name, name, name_strlen);
+    kmemcpy(proc->name, name, name_strlen);
     proc->pagemap = pagemap;
     proc->pid = new_pid();
     DLIST_INIT_SYNCED(proc->threads);
@@ -162,7 +168,8 @@ struct thread_t *sched_new_kthread(void *(*start)(void *), void *arg) {
     return thread;
 }
 
-struct thread_t *sched_new_thread(struct proc_t *parent, void *(*start)(void *), void *arg) {
+struct thread_t *sched_new_thread(struct proc_t *parent, void *(*start)(void *),
+                                  void *arg) {
     (void) parent, (void) start, (void) arg;
     kpanic("User threads are not implemented");
 }
@@ -189,12 +196,20 @@ void sched_init_cpu(void) {
     DLIST_INIT_SYNCED(cpu->dead_queue);
     DLIST_INIT_SYNCED(cpu->run_queue);
 
-    struct thread_t *dummy = create_thread(NULL, NULL);
-    dummy->state = THREAD_STATE_DEAD;
-    cpu->curr_thread = dummy;
-    DLIST_INSERT_SYNCED(cpu->run_queue, dummy, links);
+    // TODO:
+    // if worker is made the curr_thread, calling sched_yield from kernel_entry
+    // makes the kernel think that is the worker thread and saves the
+    // kernel_entry state when context switching to worker, the scheduler
+    // unknowningly restores the kernel_entry state
 
-    // TODO a reaper worker thread for all CPUs?
+    // make the scheduler think that the kernel entry point was a thread that is
+    // now dead
+    struct thread_t *kernel_entry_thread = create_thread(NULL, NULL);
+    kernel_entry_thread->state = THREAD_STATE_DEAD;
+    cpu->curr_thread = kernel_entry_thread;
+    DLIST_INSERT_SYNCED(cpu->run_queue, kernel_entry_thread, links);
+
+    // TODO: a reaper worker thread for all CPUs?
     struct thread_t *worker = create_thread(worker_free_dead_threads, NULL);
     DLIST_INSERT_SYNCED(cpu->run_queue, worker, links);
 }
@@ -210,7 +225,7 @@ void sched_thread_exit(void *thread_returned) {
     DLIST_DELETE_SYNCED(cpu->run_queue, curr, links);
     DLIST_INSERT_SYNCED(cpu->dead_queue, curr, links);
 
-    klog_info("Thread %d finished executing on CPU %d", curr->tid, cpu->id);
+    klog_info("Thread %u running on CPU %u exited", curr->tid, cpu->id);
 
     sched_yield();
 
@@ -229,7 +244,7 @@ void sched_yield(void) {
     void **curr_sp_ptr = &curr->sp;
     void **next_sp_ptr;
 
-    if (curr->state != THREAD_STATE_DEAD) { 
+    if (curr->state != THREAD_STATE_DEAD) {
         curr->state = THREAD_STATE_READY;
     }
 
@@ -273,7 +288,7 @@ static void *worker_free_dead_threads(void *arg) {
             thread = next;
         }
 
-yield:
+    yield:
         spin_unlock(&cpu->dead_queue.lock);
         interrupts_set(old_int_state);
         sched_yield();

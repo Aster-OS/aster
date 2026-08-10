@@ -1,7 +1,10 @@
+#include "acpi/hpet.h"
+
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "acpi/acpi.h"
-#include "acpi/hpet.h"
 #include "arch/x86_64/asm.h"
 #include "klog/klog.h"
 #include "lib/compiler.h"
@@ -48,7 +51,8 @@ void hpet_init(void) {
     vmm_map_hhdm(hpet_table->address);
     hpet = (struct hpet_t *) (hpet_table->address + vmm_get_hhdm_offset());
 
-    uint64_t hpet_comparators_count = ((hpet->general_capabilities >> 8) & 0x1f) + 1;
+    uint64_t hpet_comparators_count =
+        ((hpet->general_capabilities >> 8) & 0x1f) + 1;
     uint64_t hpet_period = hpet->general_capabilities >> 32;
     hpet_freq = 1000000000000000 / hpet_period;
     hpet_is_64_bit = hpet->general_capabilities & (1 << 13);
@@ -90,7 +94,8 @@ void hpet_sleep_ns(uint64_t ns) {
                 pause();
             }
 
-            uint64_t counter_target_after_overflow = counter_target - UINT32_MAX;
+            uint64_t counter_target_after_overflow =
+                counter_target - UINT32_MAX;
             while (hpet->main_counter_val < counter_target_after_overflow) {
                 pause();
             }

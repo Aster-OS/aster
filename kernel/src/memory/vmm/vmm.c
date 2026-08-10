@@ -1,9 +1,13 @@
+#include "memory/vmm/vmm.h"
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "arch/x86_64/asm.h"
 #include "klog/klog.h"
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
+#include "limine.h"
 #include "memory/pmm/pmm.h"
-#include "memory/vmm/vmm.h"
 
 static const uint64_t VMM_PAGE_PRESENT = 1 << 0;
 static const uint64_t VMM_FLAGS_HHDM = VMM_PAGE_WRITE | VMM_PAGE_NX;
@@ -30,18 +34,21 @@ static bool should_map_to_hhdm(uint64_t type) {
            type == LIMINE_MEMMAP_ACPI_NVS;
 }
 
+void vmm_init(struct limine_memmap_response *memmap,
+              struct limine_executable_address_response *executable_addr) {
     kernel_pagemap = pmm_alloc(true);
 
     uintptr_t text_start = (uintptr_t) &__TEXT_START;
-    uintptr_t text_end   = (uintptr_t) &__TEXT_END;
+    uintptr_t text_end = (uintptr_t) &__TEXT_END;
     uintptr_t rodata_start = (uintptr_t) &__RODATA_START;
-    uintptr_t rodata_end   = (uintptr_t) &__RODATA_END;
+    uintptr_t rodata_end = (uintptr_t) &__RODATA_END;
     uintptr_t data_start = (uintptr_t) &__DATA_START;
-    uintptr_t data_end   = (uintptr_t) &__DATA_END;
+    uintptr_t data_end = (uintptr_t) &__DATA_END;
     uintptr_t limine_reqs_start = (uintptr_t) &__LIMINE_REQUESTS_START;
     uintptr_t limine_reqs_end = (uintptr_t) &__LIMINE_REQUESTS_END;
 
-    uintptr_t virt_to_phys_slide = executable_addr->virtual_base - executable_addr->physical_base;
+    uintptr_t virt_to_phys_slide =
+        executable_addr->virtual_base - executable_addr->physical_base;
 
     for (uintptr_t i = text_start; i < text_end; i += PAGE_SIZE) {
         uintptr_t virt = i;
@@ -72,10 +79,12 @@ static bool should_map_to_hhdm(uint64_t type) {
 
         if (should_map_to_hhdm(entry->type)) {
             uintptr_t entry_start = align_down(entry->base, PAGE_SIZE);
-            uintptr_t entry_end = align_up(entry->base + entry->length, PAGE_SIZE);
+            uintptr_t entry_end =
+                align_up(entry->base + entry->length, PAGE_SIZE);
 
             for (uintptr_t j = entry_start; j < entry_end; j += PAGE_SIZE) {
-                vmm_map_page(kernel_pagemap, j + hhdm_offset, j, VMM_FLAGS_HHDM);
+                vmm_map_page(kernel_pagemap, j + hhdm_offset, j,
+                             VMM_FLAGS_HHDM);
             }
         }
     }
@@ -107,8 +116,10 @@ static phys_t get_next_pml(phys_t pml, uint16_t pml_index) {
 
     // the requested flags will be set only for the pml1 entry,
     // allowing pages with different permissions at the last level
-    // all other pml entries are granted all permissions (write, user, execute)
-    *pml_entry = (pml_entry_t) pmm_alloc(true) | VMM_PAGE_PRESENT | VMM_PAGE_WRITE | VMM_PAGE_USER;
+    // all other pml entries are granted all permissions (write, user,
+    // execute)
+    *pml_entry = (pml_entry_t) pmm_alloc(true) | VMM_PAGE_PRESENT |
+                 VMM_PAGE_WRITE | VMM_PAGE_USER;
     return *pml_entry & PTE_PHYS_ADDR_MASK;
 }
 
@@ -145,7 +156,9 @@ void vmm_map_page(phys_t pagemap, uintptr_t virt, phys_t phys, uint64_t flags) {
     invlpg_if_needed(pagemap, virt);
 }
 
-void vmm_map_range_contig(phys_t pagemap, uintptr_t virt_start, phys_t phys_start, uint64_t page_count, uint64_t flags) {
+void vmm_map_range_contig(phys_t pagemap, uintptr_t virt_start,
+                          phys_t phys_start, uint64_t page_count,
+                          uint64_t flags) {
     uintptr_t length = page_count * PAGE_SIZE;
     for (uintptr_t i = 0; i < length; i += PAGE_SIZE) {
         vmm_map_page(pagemap, virt_start + i, phys_start + i, flags);
@@ -165,7 +178,8 @@ void vmm_unmap_page(phys_t pagemap, uintptr_t virt) {
     invlpg_if_needed(pagemap, virt);
 }
 
-void vmm_unmap_range_contig(phys_t pagemap, uintptr_t virt_start, uint64_t page_count) {
+void vmm_unmap_range_contig(phys_t pagemap, uintptr_t virt_start,
+                            uint64_t page_count) {
     uintptr_t length = page_count * PAGE_SIZE;
     for (uintptr_t i = 0; i < length; i += PAGE_SIZE) {
         vmm_unmap_page(pagemap, virt_start + i);

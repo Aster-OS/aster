@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "lib/compiler.h"
 
 struct tss_t {

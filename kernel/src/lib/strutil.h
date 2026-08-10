@@ -2,8 +2,11 @@
 
 #include <stddef.h>
 
-#define strcmp kstrcmp
+#define kstrcmp  strcmp
+#define kstrlen  strlen
+#define kstrncmp strncmp
 
-int kstrcmp(const char *s1, const char *s2);
-size_t strlen(const char *s);
-int strncmp(const char *s1, const char *s2, size_t n);
+int strcmp(char const *s1, char const *s2);
+size_t strlen(char const *s);
+int strncmp(char const *s1, char const *s2, size_t n);
+size_t strnlen(char const *s, size_t maxlen);

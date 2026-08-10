@@ -1,7 +1,10 @@
+#include "timer/timer.h"
+
+#include <stdint.h>
+
 #include "acpi/hpet.h"
 #include "arch/x86_64/pit/pit.h"
 #include "klog/klog.h"
-#include "timer/timer.h"
 
 struct timer_t {
     uint64_t (*get_ns)(void);

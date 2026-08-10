@@ -1,8 +1,14 @@
 #include "acpi/acpi.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "lib/compiler.h"
 #include "lib/strutil.h"
+#include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
 struct rsdp_t {
@@ -61,18 +67,19 @@ struct sdt_hdr_t *acpi_find_table(char *signature) {
             table_addr = ((struct rsdt_t *) rsdt_or_xsdt)->entries[i];
         }
 
-        struct sdt_hdr_t *table_hdr = (struct sdt_hdr_t *) (table_addr + vmm_get_hhdm_offset());
-        if (strncmp(table_hdr->signature, signature, 4) == 0) {
+        struct sdt_hdr_t *table_hdr =
+            (struct sdt_hdr_t *) (table_addr + vmm_get_hhdm_offset());
+        if (kstrncmp(table_hdr->signature, signature, 4) == 0) {
             return table_hdr;
         }
     }
-    
+
     return NULL;
 }
 
 void acpi_init(void *rsdp_addr) {
-    struct rsdp_t *rsdp = (struct rsdp_t *)rsdp_addr;
-    struct xsdp_t *xsdp = (struct xsdp_t *)rsdp_addr;
+    struct rsdp_t *rsdp = (struct rsdp_t *) rsdp_addr;
+    struct xsdp_t *xsdp = (struct xsdp_t *) rsdp_addr;
 
     klog_debug("ACPI revision %llu", rsdp->revision);
 
@@ -88,7 +95,8 @@ void acpi_init(void *rsdp_addr) {
 
     // only the last byte of the checksum matters
     uint8_t rsdp_or_xsdp_checksum = 0;
-    uint32_t rsdp_or_xsdp_sz = xsdt_supported ? sizeof(struct xsdp_t) : sizeof(struct rsdp_t);
+    uint32_t rsdp_or_xsdp_sz =
+        xsdt_supported ? sizeof(struct xsdp_t) : sizeof(struct rsdp_t);
     for (uint32_t i = 0; i < rsdp_or_xsdp_sz; i++) {
         // RSDP and XSDP point to the same addr, either can be used here
         // the above calculated size is the one that matters
@@ -98,7 +106,6 @@ void acpi_init(void *rsdp_addr) {
     kassert(rsdp_or_xsdp_checksum == 0);
 
     rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
-
     kassert(acpi_calc_table_checksum(rsdt_or_xsdt) == 0);
 
     if (xsdt_supported) {

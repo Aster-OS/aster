@@ -1,7 +1,8 @@
+#include "arch/x86_64/idt/idt.h"
+
 #include <stdint.h>
 
 #include "arch/x86_64/gdt/gdt_selectors.h"
-#include "arch/x86_64/idt/idt.h"
 #include "klog/klog.h"
 #include "lib/compiler.h"
 
@@ -52,5 +53,5 @@ void idt_init(void) {
 }
 
 void idt_reload(void) {
-    __asm__ volatile("lidt %0" : : "m" (idtr) : "memory");
+    __asm__ volatile("lidt %0" : : "m"(idtr) : "memory");
 }

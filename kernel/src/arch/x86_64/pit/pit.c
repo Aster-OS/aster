@@ -1,8 +1,10 @@
-#include "arch/x86_64/asm.h"
+#include "arch/x86_64/pit/pit.h"
+#include <stdint.h>
+
 #include "arch/x86_64/apic/ioapic.h"
 #include "arch/x86_64/apic/lapic.h"
+#include "arch/x86_64/asm.h"
 #include "arch/x86_64/interrupts/interrupts.h"
-#include "arch/x86_64/pit/pit.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 
@@ -10,7 +12,7 @@ static const uint8_t PIT_CH0_DATA_PORT = 0x40;
 static const uint8_t PIT_COMMAND_PORT = 0x43;
 
 static const uint64_t PIT_INTERNAL_FREQ = 1193182;
-static const uint64_t PIT_DESIRED_FREQ  = 1000;
+static const uint64_t PIT_DESIRED_FREQ = 1000;
 
 static const uint8_t PIT_ISA_IRQ = 0;
 

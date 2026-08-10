@@ -1,4 +1,8 @@
+#include "memory/kmalloc/kmalloc.h"
+
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "kassert/kassert.h"
 #include "klog/klog.h"
@@ -6,19 +10,18 @@
 #include "lib/align.h"
 #include "lib/list/dlist.h"
 #include "lib/spinlock/spinlock.h"
-#include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
 #include "memory/vmm/vmm.h"
 
-static const uintptr_t HEAP_START = 0xffffffffd0000000;
-static const uintptr_t HEAP_SIZE = 0x2000000;
-static const uintptr_t HEAP_END = HEAP_START + HEAP_SIZE;
+static uintptr_t const HEAP_START = 0xffffffffd0000000;
+static uintptr_t const HEAP_SIZE = 0x2000000;
+static uintptr_t const HEAP_END = HEAP_START + HEAP_SIZE;
 
-static const uint64_t HEAP_ALIGNMENT = 8;
-static const uint64_t CHUNK_SIZE_MASK = ~(HEAP_ALIGNMENT - 1);
+static uint64_t const HEAP_ALIGNMENT = 8;
+static uint64_t const CHUNK_SIZE_MASK = ~(HEAP_ALIGNMENT - 1);
 
-static const uint64_t FLAG_IS_FREE = 0x1;
-static const uint64_t FLAG_IS_PREV_FREE = 0x2;
+static uint64_t const FLAG_IS_FREE = 0x1;
+static uint64_t const FLAG_IS_PREV_FREE = 0x2;
 
 static struct spinlock_t kmalloc_lock = SPINLOCK_STATIC_INIT;
 
@@ -45,16 +48,19 @@ struct alloc_hdr_t {
 // - is placed at the start of every chunk
 // - is of type `size_t`
 // - has the following structure:
-//     bit 0: FLAG_IS_FREE          - is this chunk free? 
+//     bit 0: FLAG_IS_FREE          - is this chunk free?
 //     bit 1: FLAG_IS_PREV_FREE     - is the previous chunk free?
 //     bit 2: unused
-//     bits 3 and above: chunk size - how large is this chunk? (always aligned on 8-byte boundary)
-//   since chunk sizes are always aligned, the lower bits can be used for flagging
+//     bits 3 and above: chunk size - how large is this chunk? (always aligned
+//     on 8-byte boundary)
+//   since chunk sizes are always aligned, the lower bits can be used for
+//   flagging
 
 // before the end of every free chunk is placed a `free_footer_t` struct
 // which holds the size of the chunk
 // this footer is used for coalescing adjacent free chunks,
-// specifically, for obtaining the size of the previous chunk, relative to the chunk to be freed
+// specifically, for obtaining the size of the previous chunk, relative to the
+// chunk to be freed
 
 static inline size_t align_sz(size_t sz) {
     return (size_t) align_up(sz, HEAP_ALIGNMENT);
@@ -95,7 +101,7 @@ static inline bool is_in_heap_bounds(uintptr_t addr) {
 static DLIST_HEAD(freelist, struct free_node_t);
 
 static void freelist_add_node(struct free_node_t *node_to_add) {
-    DLIST_INSERT(freelist, node_to_add, links); 
+    DLIST_INSERT(freelist, node_to_add, links);
 }
 
 static void freelist_remove_node(struct free_node_t *node_to_remove) {
@@ -106,10 +112,11 @@ static void freelist_remove_node(struct free_node_t *node_to_remove) {
 void *kmalloc(size_t sz) {
     size_t needed_sz = sz + sizeof(struct alloc_hdr_t);
     needed_sz = align_sz(needed_sz);
- 
+
     // make sure that after the allocation, when this chunk is freed,
-    // it will be large enough to hold the free_node_t and the free_footer_t structs
-    size_t FREE_CHUNK_MIN_SZ = 
+    // it will be large enough to hold the free_node_t and the free_footer_t
+    // structs
+    size_t FREE_CHUNK_MIN_SZ =
         align_sz(sizeof(struct free_node_t) + sizeof(struct free_footer_t));
     if (needed_sz < FREE_CHUNK_MIN_SZ) {
         needed_sz = FREE_CHUNK_MIN_SZ;
@@ -118,16 +125,16 @@ void *kmalloc(size_t sz) {
     // search for a free chunk which either has a free size equal to alloc_sz:
     //   allocate the whole chunk
     // OR a free size of at least alloc_sz + FREE_CHUNK_MIN_SZ:
-    //   split the chunk in two; allocate the first slice; add the second slice on the freelist
+    //   split the chunk in two; allocate the first slice; add the second slice
+    //   on the freelist
 
     spin_lock_irqsave(&kmalloc_lock);
-    
+
     struct free_node_t *free = freelist.head;
     size_t free_sz;
     while (free != NULL) {
         free_sz = get_sz(free);
-        if (free_sz == needed_sz ||
-            free_sz >= needed_sz + FREE_CHUNK_MIN_SZ) {
+        if (free_sz == needed_sz || free_sz >= needed_sz + FREE_CHUNK_MIN_SZ) {
             break;
         }
 
@@ -136,9 +143,10 @@ void *kmalloc(size_t sz) {
 
     if (free == NULL) {
         spin_unlock_irqrestore(&kmalloc_lock);
-        kpanic("Kernel heap out of memory - failed to allocate 0x%llx bytes", sz);
+        kpanic("Kernel heap out of memory - failed to allocate 0x%llx bytes",
+               sz);
     }
-    
+
     // if a free chunk is found, remove it from the freelist
     freelist_remove_node(free);
 
@@ -165,8 +173,10 @@ void *kmalloc(size_t sz) {
 
         // place footer
         uintptr_t remain_end_addr = remain_addr + get_sz(remain);
-        uintptr_t remain_footer_addr = remain_end_addr - sizeof(struct free_footer_t);
-        struct free_footer_t *remain_footer = (struct free_footer_t *) remain_footer_addr;
+        uintptr_t remain_footer_addr =
+            remain_end_addr - sizeof(struct free_footer_t);
+        struct free_footer_t *remain_footer =
+            (struct free_footer_t *) remain_footer_addr;
         remain_footer->sz = get_sz(remain);
     }
 
@@ -197,7 +207,8 @@ void kfree(void *ptr) {
     kassert(is_in_heap_bounds(ptr_addr));
 
     // the chunk to be freed and its address
-    uintptr_t to_free_addr = (uintptr_t) (ptr_addr - sizeof(struct alloc_hdr_t));
+    uintptr_t to_free_addr =
+        (uintptr_t) (ptr_addr - sizeof(struct alloc_hdr_t));
     struct free_node_t *to_free = (struct free_node_t *) to_free_addr;
 
     // double frees are considered a bug
@@ -207,13 +218,16 @@ void kfree(void *ptr) {
     size_t *next = (size_t *) next_addr;
 
     bool coalesce_with_prev = get_flag(to_free, FLAG_IS_PREV_FREE);
-    bool coalesce_with_next = is_in_heap_bounds(next_addr) && get_flag(next, FLAG_IS_FREE);
+    bool coalesce_with_next =
+        is_in_heap_bounds(next_addr) && get_flag(next, FLAG_IS_FREE);
 
     // no coalescing
     if (!coalesce_with_prev && !coalesce_with_next) {
         // place footer
-        uintptr_t new_footer_addr = to_free_addr + get_sz(to_free) - sizeof(struct free_footer_t);
-        struct free_footer_t *new_footer = (struct free_footer_t *) new_footer_addr;
+        uintptr_t new_footer_addr =
+            to_free_addr + get_sz(to_free) - sizeof(struct free_footer_t);
+        struct free_footer_t *new_footer =
+            (struct free_footer_t *) new_footer_addr;
         new_footer->sz = get_sz(to_free);
 
         set_flag(to_free, FLAG_IS_FREE); // mark `to_free` as free
@@ -225,11 +239,13 @@ void kfree(void *ptr) {
             set_flag(next, FLAG_IS_PREV_FREE);
         }
 
-    // coalesce with the prev chunk only
+        // coalesce with the prev chunk only
     } else if (coalesce_with_prev && !coalesce_with_next) {
         // use the previous chunk footer to get previous chunk address
-        uintptr_t prev_footer_addr = to_free_addr - sizeof(struct free_footer_t);
-        struct free_footer_t *prev_footer = (struct free_footer_t *) prev_footer_addr;
+        uintptr_t prev_footer_addr =
+            to_free_addr - sizeof(struct free_footer_t);
+        struct free_footer_t *prev_footer =
+            (struct free_footer_t *) prev_footer_addr;
         uintptr_t prev_addr = to_free_addr - prev_footer->sz;
         struct free_node_t *prev = (struct free_node_t *) prev_addr;
 
@@ -237,8 +253,10 @@ void kfree(void *ptr) {
         set_sz(prev, new_sz);
 
         // place footer for the coalesced chunk
-        uintptr_t new_footer_addr = prev_addr + new_sz - sizeof(struct free_footer_t);
-        struct free_footer_t *new_footer = (struct free_footer_t *) new_footer_addr;
+        uintptr_t new_footer_addr =
+            prev_addr + new_sz - sizeof(struct free_footer_t);
+        struct free_footer_t *new_footer =
+            (struct free_footer_t *) new_footer_addr;
         new_footer->sz = new_sz;
 
         // `to_free` was freed
@@ -247,14 +265,16 @@ void kfree(void *ptr) {
             set_flag(next, FLAG_IS_PREV_FREE);
         }
 
-    // coalesce with the next chunk only
+        // coalesce with the next chunk only
     } else if (!coalesce_with_prev && coalesce_with_next) {
         size_t new_sz = get_sz(to_free) + get_sz(next);
         set_sz(to_free, new_sz);
 
         // place footer for the coalesced chunk
-        uintptr_t new_footer_addr = to_free_addr + new_sz - sizeof(struct free_footer_t);
-        struct free_footer_t *new_footer = (struct free_footer_t *) new_footer_addr;
+        uintptr_t new_footer_addr =
+            to_free_addr + new_sz - sizeof(struct free_footer_t);
+        struct free_footer_t *new_footer =
+            (struct free_footer_t *) new_footer_addr;
         new_footer->sz = new_sz;
 
         freelist_remove_node((struct free_node_t *) next);
@@ -262,11 +282,13 @@ void kfree(void *ptr) {
         set_flag(to_free, FLAG_IS_FREE); // mark `to_free` as free
         freelist_add_node(to_free);
 
-    // coalesce with the prev & next chunk
+        // coalesce with the prev & next chunk
     } else {
         // use the previous chunk footer to get previous chunk address
-        uintptr_t prev_footer_addr = to_free_addr - sizeof(struct free_footer_t);
-        struct free_footer_t *prev_footer = (struct free_footer_t *) prev_footer_addr;
+        uintptr_t prev_footer_addr =
+            to_free_addr - sizeof(struct free_footer_t);
+        struct free_footer_t *prev_footer =
+            (struct free_footer_t *) prev_footer_addr;
         uintptr_t prev_addr = to_free_addr - prev_footer->sz;
         struct free_node_t *prev = (struct free_node_t *) prev_addr;
 
@@ -274,8 +296,10 @@ void kfree(void *ptr) {
         set_sz(prev, new_sz);
 
         // place footer for the coalesced chunk
-        uintptr_t new_footer_addr = prev_addr + new_sz - sizeof(struct free_footer_t);
-        struct free_footer_t *new_footer = (struct free_footer_t *) new_footer_addr;
+        uintptr_t new_footer_addr =
+            prev_addr + new_sz - sizeof(struct free_footer_t);
+        struct free_footer_t *new_footer =
+            (struct free_footer_t *) new_footer_addr;
         new_footer->sz = new_sz;
 
         freelist_remove_node((struct free_node_t *) next);
@@ -287,7 +311,8 @@ void kfree(void *ptr) {
 void kmalloc_init(void) {
     for (uintptr_t virt = HEAP_START; virt < HEAP_END; virt += PAGE_SIZE) {
         phys_t phys = pmm_alloc(true);
-        vmm_map_page(vmm_get_kernel_pagemap(), virt, phys, VMM_PAGE_WRITE | VMM_PAGE_NX);
+        vmm_map_page(vmm_get_kernel_pagemap(), virt, phys,
+                     VMM_PAGE_WRITE | VMM_PAGE_NX);
     }
 
     DLIST_INIT(freelist);
@@ -298,5 +323,6 @@ void kmalloc_init(void) {
     unset_flag(first, FLAG_IS_PREV_FREE);
     freelist_add_node(first);
 
-    klog_info("Kernel heap initialized with %lluMiB of memory", HEAP_SIZE >> 20);
+    klog_info("Kernel heap initialized with %lluMiB of memory",
+              HEAP_SIZE >> 20);
 }

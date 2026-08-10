@@ -5,7 +5,7 @@
 
 #include "arch/x86_64/asm.h"
 
-#define SPINLOCK_INIT ((struct spinlock_t) {0, 0})
+#define SPINLOCK_INIT        ((struct spinlock_t) {0, 0})
 #define SPINLOCK_STATIC_INIT {0, 0}
 
 struct spinlock_t {

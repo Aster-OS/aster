@@ -4,7 +4,7 @@
 
 #include "lib/compiler.h"
 
-#define ISA_IRQ_MAX 16
+#define ISA_IRQ_MAX     16
 #define PIC1_IRQ_OFFSET 0x20
 #define PIC2_IRQ_OFFSET 0x28
 

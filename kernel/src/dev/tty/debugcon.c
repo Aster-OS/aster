@@ -1,5 +1,10 @@
-#include "arch/x86_64/asm.h"
 #include "dev/tty/debugcon.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "arch/x86_64/asm.h"
+#include "dev/tty/tty.h"
 
 static struct tty_t debugcon_tty;
 
