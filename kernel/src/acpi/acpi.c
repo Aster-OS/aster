@@ -68,7 +68,7 @@ struct sdt_hdr_t *acpi_find_table(char *signature) {
         }
 
         struct sdt_hdr_t *table_hdr =
-            (struct sdt_hdr_t *) (table_addr + vmm_get_hhdm_offset());
+            (struct sdt_hdr_t *) (table_addr + vmm_hhdm_offset());
         if (kstrncmp(table_hdr->signature, signature, 4) == 0) {
             return table_hdr;
         }
@@ -105,7 +105,7 @@ void acpi_init(void *rsdp_addr) {
 
     kassert(rsdp_or_xsdp_checksum == 0);
 
-    rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_get_hhdm_offset());
+    rsdt_or_xsdt = (void *) (rsdt_or_xsdt_addr + vmm_hhdm_offset());
     kassert(acpi_calc_table_checksum(rsdt_or_xsdt) == 0);
 
     if (xsdt_supported) {

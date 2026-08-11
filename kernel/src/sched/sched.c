@@ -185,7 +185,7 @@ void sched_init(void) {
     interrupts_set_handler(sched_vec, sched_int_handler);
 
     DLIST_INIT_SYNCED(procs);
-    proc_kernel = sched_new_proc("kernel", vmm_get_kernel_pagemap());
+    proc_kernel = sched_new_proc("kernel", vmm_kernel_pagemap());
 
     klog_info("Scheduler initialized");
 }

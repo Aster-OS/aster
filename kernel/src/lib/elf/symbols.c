@@ -19,7 +19,7 @@ static bool symbols_initialized;
 static struct symbol_t *funcs;
 static size_t funcs_count;
 
-extern unsigned char __TEXT_MAX_ADDR[];
+extern char TEXT_MAX_ADDR;
 
 char *symbols_get_func_name(void *addr) {
     if (!symbols_initialized) {
@@ -27,7 +27,7 @@ char *symbols_get_func_name(void *addr) {
     }
 
     if (addr < funcs[0].addr ||
-        (uintptr_t) addr >= (uintptr_t) &__TEXT_MAX_ADDR) {
+        (uintptr_t) addr >= (uintptr_t) &TEXT_MAX_ADDR) {
         goto unknown_func;
     }
 

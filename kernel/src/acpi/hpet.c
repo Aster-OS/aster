@@ -49,7 +49,7 @@ struct hpet_table_t *hpet_table;
 
 void hpet_init(void) {
     vmm_map_hhdm(hpet_table->address);
-    hpet = (struct hpet_t *) (hpet_table->address + vmm_get_hhdm_offset());
+    hpet = (struct hpet_t *) (hpet_table->address + vmm_hhdm_offset());
 
     uint64_t hpet_comparators_count =
         ((hpet->general_capabilities >> 8) & 0x1f) + 1;

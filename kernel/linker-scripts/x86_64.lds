@@ -24,7 +24,7 @@ SECTIONS
     . = 0xffffffff80000000;
 
     /* Define a section to contain the Limine requests and assign it to its own PHDR */
-    __LIMINE_REQUESTS_START = .;
+    LIMINE_REQUESTS_START = .;
 
     .limine_requests : {
         KEEP(*(.limine_requests_start))
@@ -35,20 +35,20 @@ SECTIONS
     /* Move to the next memory page for .text */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
-    __LIMINE_REQUESTS_END = .;
-    __TEXT_START = .;
+    LIMINE_REQUESTS_END = .;
+    TEXT_START = .;
 
     .text : {
         *(.text .text.*)
     } :text
 
-    __TEXT_MAX_ADDR = .;
+    TEXT_MAX_ADDR = .;
 
     /* Move to the next memory page for .rodata */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
-    __TEXT_END = .;
-    __RODATA_START = .;
+    TEXT_END = .;
+    RODATA_START = .;
 
     .rodata : {
         *(.rodata .rodata.*)
@@ -63,8 +63,8 @@ SECTIONS
     /* Move to the next memory page for .data */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
-    __RODATA_END = .;
-    __DATA_START = .;
+    RODATA_END = .;
+    DATA_START = .;
 
     .data : {
         *(.data .data.*)
@@ -81,7 +81,7 @@ SECTIONS
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     
-    __DATA_END = .;
+    DATA_END = .;
 
     /* Discard .note.* and .eh_frame* since they may cause issues on some hosts. */
     /DISCARD/ : {

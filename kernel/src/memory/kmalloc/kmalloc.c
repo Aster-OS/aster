@@ -310,9 +310,7 @@ void kfree(void *ptr) {
 
 void kmalloc_init(void) {
     for (uintptr_t virt = HEAP_START; virt < HEAP_END; virt += PAGE_SIZE) {
-        phys_t phys = pmm_alloc(true);
-        vmm_map_page(vmm_get_kernel_pagemap(), virt, phys,
-                     VMM_PAGE_WRITE | VMM_PAGE_NX);
+        vmm_map_page(vmm_kernel_pagemap(), virt, pmm_alloc(true), VMM_WRITE);
     }
 
     DLIST_INIT(freelist);

@@ -1,4 +1,5 @@
 #include "memory/pmm/pmm.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -39,8 +40,7 @@ void pmm_init(struct limine_memmap_response *memmap) {
     page_allocation_start = (phys_t) (largest_usable_entry->base +
                                       pages_used_to_store_bitmap * PAGE_SIZE);
 
-    bitmap.start =
-        (uint8_t *) (largest_usable_entry->base + vmm_get_hhdm_offset());
+    bitmap.start = (uint8_t *) (largest_usable_entry->base + vmm_hhdm_offset());
     bitmap.bit_count = usable_pages - pages_used_to_store_bitmap;
     for (uint64_t i = 0; i < pages_used_to_store_bitmap * PAGE_SIZE; i++) {
         bitmap.start[i] = 0;
@@ -68,7 +68,7 @@ phys_t pmm_alloc(bool zero_contents) {
             return page_addr;
         }
 
-        uint8_t *page_start = (uint8_t *) (page_addr + vmm_get_hhdm_offset());
+        uint8_t *page_start = (uint8_t *) (page_addr + vmm_hhdm_offset());
         uint8_t *page_end = (uint8_t *) (page_start + PAGE_SIZE);
         for (uint8_t *i = page_start; i < page_end; i++) {
             *i = 0;
@@ -113,7 +113,7 @@ phys_t pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
             return page_addr;
         }
 
-        uint8_t *page_start = (uint8_t *) (page_addr + vmm_get_hhdm_offset());
+        uint8_t *page_start = (uint8_t *) (page_addr + vmm_hhdm_offset());
         uint8_t *page_end = (uint8_t *) (page_start + n_pages * PAGE_SIZE);
         for (uint8_t *i = page_start; i < page_end; i++) {
             *i = 0;

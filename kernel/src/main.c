@@ -162,13 +162,14 @@ void kernel_entry(void) {
     kassert(mp != NULL);
     kassert(rsdp != NULL);
 
+    vmm_set_hhdm_offset(hhdm->offset);
+
     gdt_init();
     gdt_reload_segments();
     gdt_reload_tss();
     idt_init();
     idt_reload();
     interrupts_init();
-    vmm_set_hhdm_offset(hhdm->offset);
     pmm_init(memmap);
     pmm_print_memmap(memmap);
     vmm_init(memmap, executable_addr);

@@ -1,4 +1,5 @@
 #include "arch/x86_64/apic/lapic.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -84,8 +85,7 @@ static inline uint32_t lapic_read(uint16_t reg) {
     if (mp_x2apic_enabled()) {
         return rdmsr(reg_to_x2apic_msr(reg));
     } else {
-        return *(volatile uint32_t *) (lapic_addr + reg +
-                                       vmm_get_hhdm_offset());
+        return *(volatile uint32_t *) (lapic_addr + reg + vmm_hhdm_offset());
     }
 }
 
@@ -93,7 +93,7 @@ static inline void lapic_write(uint16_t reg, uint32_t val) {
     if (mp_x2apic_enabled()) {
         wrmsr(reg_to_x2apic_msr(reg), val);
     } else {
-        *(volatile uint32_t *) (lapic_addr + reg + vmm_get_hhdm_offset()) = val;
+        *(volatile uint32_t *) (lapic_addr + reg + vmm_hhdm_offset()) = val;
     }
 }
 

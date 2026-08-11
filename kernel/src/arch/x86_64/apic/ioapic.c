@@ -21,15 +21,13 @@ enum ioapic_regs {
 };
 
 static uint32_t ioapic_read(uint32_t ioapic_addr, uint8_t reg) {
-    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) =
-        reg;
-    return *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_get_hhdm_offset());
+    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_hhdm_offset()) = reg;
+    return *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_hhdm_offset());
 }
 
 static void ioapic_write(uint32_t ioapic_addr, uint8_t reg, uint32_t val) {
-    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_get_hhdm_offset()) =
-        reg;
-    *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_get_hhdm_offset()) = val;
+    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_hhdm_offset()) = reg;
+    *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_hhdm_offset()) = val;
 }
 
 uint32_t ioapic_get_max_redir_entry(uint32_t ioapic_addr) {
