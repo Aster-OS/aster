@@ -146,7 +146,6 @@ void kernel_entry(void) {
 
     klog_info("Aster booted by %s v%s", bootloader_info->name,
               bootloader_info->version);
-    klog_info("Built at commit \"%s\"", COMMIT_HASH);
 
     char cpu_brand_str[48];
     if (cpu_get_brand_str(cpu_brand_str)) {

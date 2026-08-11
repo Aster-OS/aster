@@ -20,10 +20,8 @@ CC := gcc
 LD := ld
 
 # User controllable C flags.
-COMMIT_HASH = $(shell git rev-parse --short HEAD)
 CFLAGS := \
 	-DPRINTF_INCLUDE_CONFIG_H \
-	-DCOMMIT_HASH=\"$(COMMIT_HASH)\" \
 	-fno-builtin-memcpy \
 	-fno-omit-frame-pointer \
 	-g \
