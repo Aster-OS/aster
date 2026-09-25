@@ -33,7 +33,7 @@ struct hpet_timer_t {
 struct hpet_t {
     uint64_t general_capabilities;
     uint64_t reserved0;
-    volatile uint64_t general_config;
+    uint64_t volatile general_config;
     uint64_t reserved1;
     uint64_t general_int_status;
     uint64_t reserved2[25];
@@ -49,7 +49,7 @@ struct hpet_table_t *hpet_table;
 
 void hpet_init(void) {
     vmm_map_hhdm(hpet_table->address);
-    hpet = (struct hpet_t *) (hpet_table->address + vmm_hhdm_offset());
+    hpet = (struct hpet_t *) (hpet_table->address + vmm_hhdm());
 
     uint64_t hpet_comparators_count =
         ((hpet->general_capabilities >> 8) & 0x1f) + 1;

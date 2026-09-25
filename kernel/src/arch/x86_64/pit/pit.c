@@ -1,4 +1,5 @@
 #include "arch/x86_64/pit/pit.h"
+
 #include <stdint.h>
 
 #include "arch/x86_64/apic/ioapic.h"
@@ -8,20 +9,20 @@
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 
-static const uint8_t PIT_CH0_DATA_PORT = 0x40;
-static const uint8_t PIT_COMMAND_PORT = 0x43;
+static uint8_t const PIT_CH0_DATA_PORT = 0x40;
+static uint8_t const PIT_COMMAND_PORT = 0x43;
 
-static const uint64_t PIT_INTERNAL_FREQ = 1193182;
-static const uint64_t PIT_DESIRED_FREQ = 1000;
+static uint64_t const PIT_INTERNAL_FREQ = 1193182;
+static uint64_t const PIT_DESIRED_FREQ = 1000;
 
-static const uint8_t PIT_ISA_IRQ = 0;
+static uint8_t const PIT_ISA_IRQ = 0;
 
 static uint64_t ticks;
 
 static void pit_int_handler(struct int_ctx_t *ctx) {
     (void) ctx;
     ticks++;
-    lapic_send_eoi();
+    lapic_eoi();
 }
 
 void pit_init(void) {

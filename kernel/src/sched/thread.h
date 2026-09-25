@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "sched/proc.h"
@@ -17,13 +18,15 @@ struct thread_t {
         struct thread_t *prev;
         struct thread_t *next;
     } links;
-    void *kstack;
-    struct proc_t *parent;
     struct {
         struct thread_t *prev;
         struct thread_t *next;
     } proc_links;
-    void *sp;
+    bool is_user;
+    struct proc_t *proc;
+    uint8_t kstack[8192];
+    void *kstack_sp;
+    void *ustack;
     enum thread_state_t state;
     tid_t tid;
 };

@@ -5,6 +5,7 @@
 #define kstrcmp  strcmp
 #define kstrlen  strlen
 #define kstrncmp strncmp
+#define kstrnlen strnlen
 
 int strcmp(char const *s1, char const *s2);
 size_t strlen(char const *s);

@@ -7,6 +7,7 @@
 #include "kpanic/kpanic.h"
 #include "lib/align.h"
 #include "lib/bitmap/bitmap.h"
+#include "lib/memutil.h"
 #include "limine.h"
 #include "memory/vmm/vmm.h"
 
@@ -40,11 +41,9 @@ void pmm_init(struct limine_memmap_response *memmap) {
     page_allocation_start = (phys_t) (largest_usable_entry->base +
                                       pages_used_to_store_bitmap * PAGE_SIZE);
 
-    bitmap.start = (uint8_t *) (largest_usable_entry->base + vmm_hhdm_offset());
+    bitmap.start = (uint8_t *) (largest_usable_entry->base + vmm_hhdm());
     bitmap.bit_count = usable_pages - pages_used_to_store_bitmap;
-    for (uint64_t i = 0; i < pages_used_to_store_bitmap * PAGE_SIZE; i++) {
-        bitmap.start[i] = 0;
-    }
+    kmemset(bitmap.start, 0, pages_used_to_store_bitmap * PAGE_SIZE);
 
     klog_info("PMM initialized with %lluMiB of avl. phys. mem.",
               largest_usable_entry->length >> 20);
@@ -68,7 +67,7 @@ phys_t pmm_alloc(bool zero_contents) {
             return page_addr;
         }
 
-        uint8_t *page_start = (uint8_t *) (page_addr + vmm_hhdm_offset());
+        uint8_t *page_start = (uint8_t *) (page_addr + vmm_hhdm());
         uint8_t *page_end = (uint8_t *) (page_start + PAGE_SIZE);
         for (uint8_t *i = page_start; i < page_end; i++) {
             *i = 0;
@@ -113,7 +112,7 @@ phys_t pmm_alloc_n(uint64_t n_pages, bool zero_contents) {
             return page_addr;
         }
 
-        uint8_t *page_start = (uint8_t *) (page_addr + vmm_hhdm_offset());
+        uint8_t *page_start = (uint8_t *) (page_addr + vmm_hhdm());
         uint8_t *page_end = (uint8_t *) (page_start + n_pages * PAGE_SIZE);
         for (uint8_t *i = page_start; i < page_end; i++) {
             *i = 0;
@@ -162,14 +161,14 @@ static char *get_entry_type(uint64_t entry_type) {
 
 void pmm_print_memmap(struct limine_memmap_response *memmap) {
     klog_debug("Physical memory layout:");
-    klog_debug("     START       |       END        |   SIZE   | TYPE");
+    klog_debug("     START               END            SIZE     TYPE");
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *entry = memmap->entries[i];
         phys_t start = entry->base;
         phys_t end = entry->base + entry->length;
         uint64_t length_in_mib = entry->length >> 20;
         char *type = get_entry_type(entry->type);
-        klog_debug("%016llx | %016llx | %5lluMiB | %s", start, end,
+        klog_debug("%016llx   %016llx   %5lluMiB   %s", start, end,
                    length_in_mib, type);
     }
 }

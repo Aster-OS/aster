@@ -13,11 +13,14 @@
 #include "dev/tty/debugcon.h"
 #include "dev/tty/flanterm.h"
 #include "dev/tty/tty.h"
+#include "fs/initrd.h"
 #include "kassert/kassert.h"
 #include "klog/klog.h"
 #include "klog/klog_lvl.h"
+#include "kpanic/kpanic.h"
 #include "lib/compiler.h"
 #include "lib/elf/symbols.h"
+#include "lib/strutil.h"
 #include "limine.h"
 #include "memory/kmalloc/kmalloc.h"
 #include "memory/pmm/pmm.h"
@@ -26,6 +29,8 @@
 #include "mp/mp.h"
 #include "sched/sched.h"
 #include "timer/timer.h"
+#include "userspace/elf.h"
+#include "userspace/syscall.h"
 
 ASTER_USED
 ASTER_SECTION(".limine_requests")
@@ -63,6 +68,11 @@ static volatile struct limine_memmap_request memmap_req = {
 
 ASTER_USED
 ASTER_SECTION(".limine_requests")
+static volatile struct limine_module_request module_req = {
+    .id = LIMINE_MODULE_REQUEST_ID, .revision = 0};
+
+ASTER_USED
+ASTER_SECTION(".limine_requests")
 static volatile struct limine_mp_request mp_req = {
     .id = LIMINE_MP_REQUEST_ID,
     .flags = LIMINE_MP_REQUEST_X86_64_X2APIC,
@@ -82,26 +92,7 @@ ASTER_USED
 ASTER_SECTION(".limine_requests_end")
 static uint64_t volatile limine_reqs_end_marker[] = LIMINE_REQUESTS_END_MARKER;
 
-static void *test_thread(void *arg) {
-    for (uint64_t i = 0; i < (uint64_t) arg; i++) {
-    }
-    return NULL;
-}
-
-static void *kernel_init(void *arg) {
-    (void) arg;
-
-    for (size_t i = 0; i < 10; i++) {
-        sched_new_kthread(test_thread, (void *) (uint64_t) 500000);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 400000);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 300000);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 200000);
-        sched_new_kthread(test_thread, (void *) (uint64_t) 100000);
-    }
-
-    klog_info("Kernel init thread done");
-    return NULL;
-}
+static void *kernel_init(void *arg);
 
 void kernel_entry(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) {
@@ -155,7 +146,7 @@ void kernel_entry(void) {
     kassert(bootloader_info != NULL);
     kassert(executable_addr != NULL);
     kassert(executable_file != NULL);
-    // framebuffer check is done above
+    // Framebuffer check is done above
     kassert(hhdm != 0);
     kassert(memmap != NULL);
     kassert(mp != NULL);
@@ -164,7 +155,7 @@ void kernel_entry(void) {
     vmm_set_hhdm_offset(hhdm->offset);
 
     gdt_init();
-    gdt_reload_segments();
+    gdt_reload_seg();
     gdt_reload_tss();
     idt_init();
     idt_reload();
@@ -190,4 +181,33 @@ void kernel_entry(void) {
 
     // unreachable
     halt();
+}
+
+static void *kernel_init(void *arg) {
+    (void) arg;
+
+    struct limine_module_response *modules = module_req.response;
+    if (modules->module_count == 0) {
+        kpanic("No modules found");
+    }
+
+    struct limine_file *initrd = NULL;
+    for (size_t i = 0; i < modules->module_count; i++) {
+        struct limine_file *curr = modules->modules[i];
+        if (kstrcmp(curr->string, "initrd") == 0) {
+            initrd = curr;
+            break;
+        }
+    }
+    if (initrd == NULL) {
+        kpanic("No initrd module found");
+    };
+
+    initrd_init(initrd->address, initrd->size);
+
+    syscall_init();
+
+    elf_load("./user");
+
+    return NULL;
 }

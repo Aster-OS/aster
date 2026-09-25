@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "lib/compiler.h"
@@ -21,5 +22,5 @@ typedef void (*int_handler_t)(struct int_ctx_t *frame);
 uint8_t interrupts_alloc_vector(void);
 uint8_t interrupts_get_isa_irq_vec(uint8_t isa_irq);
 void interrupts_init(void);
-void interrupts_set_handler(uint8_t vec, int_handler_t handler);
+void interrupts_set_handler(uint8_t vec, int_handler_t handler, bool user);
 void interrupts_set_isa_irq_handler(uint8_t isa_irq, int_handler_t handler);

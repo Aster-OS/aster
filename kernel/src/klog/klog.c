@@ -42,7 +42,7 @@ static void ttys_putchar(int c, void *ctx) {
     }
 }
 
-static inline const char *get_prefix(enum klog_lvl lvl) {
+static inline char const *get_prefix(enum klog_lvl lvl) {
     switch (lvl) {
         case KLOG_LVL_FATAL:
             return LOG_RESET_CLR "[" LOG_FATAL_CLR "FATAL" LOG_RESET_CLR "] ";
@@ -64,7 +64,7 @@ void klog(enum klog_lvl lvl, ...) {
 
     va_list va;
     va_start(va, lvl);
-    const char *fmt = va_arg(va, const char *);
+    char const *fmt = va_arg(va, char const *);
 
     spin_lock_irqsave(&klog_lock);
 

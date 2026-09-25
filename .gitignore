@@ -1,8 +1,12 @@
 .cache/
 .git/
+
 edk2-ovmf/
+initrd/out/
 limine/
-qemu-runner/
+qemu-logs/
+
+initrd/initrd.tar
 compile_commands.json
 *.hdd
 *.iso

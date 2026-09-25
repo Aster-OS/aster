@@ -25,7 +25,7 @@ typedef struct {
     Elf64_Half e_shstrndx;
 } ASTER_PACKED Elf64_Ehdr;
 
-void elf_find_section(void *file, char *search_name, Elf64_Shdr **shdr,
+void elf_find_section(void *file, char *name, Elf64_Shdr **shdr,
                       Elf64_Half *shndx) {
     Elf64_Ehdr *elf_hdr = (Elf64_Ehdr *) file;
     Elf64_Shdr *shstrtab_hdr =
@@ -39,7 +39,7 @@ void elf_find_section(void *file, char *search_name, Elf64_Shdr **shdr,
         char *section_name =
             (char *) ((uintptr_t) file + shstrtab_hdr->sh_offset +
                       section_hdr->sh_name);
-        if (kstrcmp(section_name, search_name) == 0) {
+        if (kstrcmp(section_name, name) == 0) {
             if (shdr)
                 *shdr = section_hdr;
             if (shndx)

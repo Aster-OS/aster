@@ -3,31 +3,33 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "arch/x86_64/interrupts/interrupts.h"
 #include "klog/klog.h"
 #include "lib/elf/symbols.h"
 
-void stacktrace(uint64_t bp) {
-    uint64_t rbp;
-    if (bp == 0) {
-        __asm__ volatile("mov %%rbp, %0" : "=m"(rbp));
+void stacktrace(struct int_ctx_t *ctx) {
+    size_t depth = 0;
+
+    uint64_t *bp, ret_addr;
+    if (ctx == NULL) {
+        __asm__ volatile("mov %%rbp, %0" : "=m"(bp));
+        ret_addr = *(bp + 1);
+        bp = (uint64_t *) *bp;
     } else {
-        rbp = bp;
+        bp = (uint64_t *) ctx->rbp;
+        ret_addr = ctx->rip;
     }
 
     klog_fatal("Stacktrace:");
+    klog_fatal("  %zu <%s> at %016llx", depth++,
+               symbols_get_func_name((void *) ret_addr), ret_addr, bp);
 
-    size_t depth = 0;
-    while (rbp) {
-        // RBP points to the next RBP
-        uint64_t *next_rbp = (uint64_t *) rbp;
-        // the return address sits below the saved RBP
-        // i.e. at the next higher address
-        uint64_t ret_addr = *(next_rbp + 1);
+    while (bp && depth < 32) {
+        ret_addr = *(uint64_t *) (bp + 1);
 
-        klog_fatal(" %zu <%s> at %016llx", depth,
-                   symbols_get_func_name((void *) ret_addr), ret_addr, rbp);
+        klog_fatal("  %zu <%s> at %016llx", depth++,
+                   symbols_get_func_name((void *) ret_addr), ret_addr, bp);
 
-        rbp = *next_rbp;
-        depth++;
+        bp = (uint64_t *) *bp;
     }
 }

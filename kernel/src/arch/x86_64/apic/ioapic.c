@@ -10,8 +10,8 @@
 #include "memory/vmm/vmm.h"
 #include "mp/mp.h"
 
-static const uint32_t IOREGSEL = 0x0;
-static const uint32_t IOWIN = 0x10;
+static uint32_t const IOREGSEL = 0x0;
+static uint32_t const IOWIN = 0x10;
 
 enum ioapic_regs {
     IOAPICID = 0x0,
@@ -21,13 +21,13 @@ enum ioapic_regs {
 };
 
 static uint32_t ioapic_read(uint32_t ioapic_addr, uint8_t reg) {
-    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_hhdm_offset()) = reg;
-    return *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_hhdm_offset());
+    *(uint32_t volatile *) (ioapic_addr + IOREGSEL + vmm_hhdm()) = reg;
+    return *(uint32_t volatile *) (ioapic_addr + IOWIN + vmm_hhdm());
 }
 
 static void ioapic_write(uint32_t ioapic_addr, uint8_t reg, uint32_t val) {
-    *(volatile uint32_t *) (ioapic_addr + IOREGSEL + vmm_hhdm_offset()) = reg;
-    *(volatile uint32_t *) (ioapic_addr + IOWIN + vmm_hhdm_offset()) = val;
+    *(uint32_t volatile *) (ioapic_addr + IOREGSEL + vmm_hhdm()) = reg;
+    *(uint32_t volatile *) (ioapic_addr + IOWIN + vmm_hhdm()) = val;
 }
 
 uint32_t ioapic_get_max_redir_entry(uint32_t ioapic_addr) {

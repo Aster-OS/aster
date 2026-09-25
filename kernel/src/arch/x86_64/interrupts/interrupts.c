@@ -1,6 +1,6 @@
 #include "arch/x86_64/interrupts/interrupts.h"
-#include <stdint.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "arch/x86_64/idt/idt.h"
@@ -14,35 +14,35 @@
 // 0x20 - 0x27 | PIC 1 IRQs [ignored]
 // 0x28 - 0x2f | PIC 2 IRQs [ignored]
 // 0x30 - 0x3f | ISA IRQs
-// 0x40 - 0xef | Usable
-// 0xf0 - 0xff | Reserved for kernel use
-// 0xf0 - LAPIC spurious interrupt
+// 0x40 - 0xef | Free
+// 0xf0 - 0xff | Reserved for kernel
+// 0xf0        | LAPIC spurious interrupt
+// 0xf1        | Syscall
 
 static uint8_t const IRQ_COUNT_PER_PIC = 8;
 static uint8_t const ISA_IRQ_OFFSET = 0x30;
 
-static uint8_t const USABLE_VECTORS_START = 0x40;
-static uint8_t const USABLE_VECTORS_END = 0xef;
+static uint8_t const FREE_VEC_START = 0x40;
+static uint8_t const FREE_VECTORS_END = 0xef;
 
-static uint16_t curr_free_vector = USABLE_VECTORS_START;
+static uint16_t free_vec = FREE_VEC_START;
 
-// interrupt handlers shared across all CPUs
+// Interrupt handlers shared across all CPUs
 static int_handler_t int_handlers[IDT_MAX_DESCRIPTORS];
 
 static void exception_handler(struct int_ctx_t *ctx) {
-    kpanic_int_ctx(ctx, "Unhandled CPU Exception");
+    kpanic_int_ctx(ctx, "Unhandled CPU exception");
 }
 
 static void pic_irq_handler(struct int_ctx_t *ctx) {
-    kpanic_int_ctx(ctx, "Unexpected PIC IRQ received", ctx->vector);
+    kpanic_int_ctx(ctx, "Unexpected PIC IRQ received");
 }
 
-static void unknown_int_handler(struct int_ctx_t *ctx) {
-    kpanic_int_ctx(ctx, "Received interrupt with no defined handler",
-                   ctx->vector);
+static void unhandled_int_handler(struct int_ctx_t *ctx) {
+    kpanic_int_ctx(ctx, "Interrupt has no handler");
 }
 
-void common_int_handler(struct int_ctx_t *ctx) {
+void int_common(struct int_ctx_t *ctx) {
     int_handlers[ctx->vector](ctx);
 }
 
@@ -54,7 +54,7 @@ void interrupts_init(void) {
     pic_disable();
 
     for (uint16_t vec = 0; vec < IDT_MAX_DESCRIPTORS; vec++) {
-        int_handlers[vec] = unknown_int_handler;
+        int_handlers[vec] = unhandled_int_handler;
     }
 
     for (uint8_t exc_vec = 0; exc_vec < 32; exc_vec++) {
@@ -73,20 +73,23 @@ uint8_t interrupts_alloc_vector(void) {
     static struct spinlock_t lock = SPINLOCK_STATIC_INIT;
     spin_lock_irqsave(&lock);
 
-    if (curr_free_vector == USABLE_VECTORS_END) {
-        kpanic("All usable vectors are exhausted");
+    if (free_vec == FREE_VECTORS_END) {
+        kpanic("Exhausted all usable vectors");
     }
 
-    uint8_t ret = curr_free_vector;
-    curr_free_vector++;
+    uint8_t ret = free_vec;
+    free_vec++;
 
     spin_unlock_irqrestore(&lock);
 
     return ret;
 }
 
-void interrupts_set_handler(uint8_t vec, int_handler_t handler) {
+void interrupts_set_handler(uint8_t vec, int_handler_t handler, bool user) {
     int_handlers[vec] = handler;
+    if (user) {
+        idt_set_user(vec);
+    }
 }
 
 void interrupts_set_isa_irq_handler(uint8_t isa_irq, int_handler_t handler) {

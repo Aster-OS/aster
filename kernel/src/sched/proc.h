@@ -3,19 +3,19 @@
 #include <stdint.h>
 
 #include "lib/list/dlist.h"
-#include "memory/pmm/pmm.h"
-
-struct thread_t;
+#include "memory/vmm/vmm.h"
 
 typedef uint16_t pid_t;
+
+struct thread_t;
 
 struct proc_t {
     struct {
         struct proc_t *prev;
         struct proc_t *next;
     } links;
+    struct pagemap_t *pagemap;
     char *name;
-    phys_t pagemap;
     pid_t pid;
     DLIST_HEAD_SYNCED(threads, struct thread_t);
 };

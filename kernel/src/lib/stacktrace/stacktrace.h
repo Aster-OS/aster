@@ -1,5 +1,5 @@
 #pragma once
 
-#include <stdint.h>
+#include "arch/x86_64/interrupts/interrupts.h"
 
-void stacktrace(uint64_t bp);
+void stacktrace(struct int_ctx_t *ctx);

@@ -36,9 +36,9 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
     // the kernel pagemap must be loaded before any code
     // that accesses the CPU struct because
     // the struct is allocated on the kernel heap
-    wr_cr3(vmm_kernel_pagemap());
+    vmm_load_pagemap(vmm_kernel_pagemap());
     cpuid_init();
-    gdt_reload_segments();
+    gdt_reload_seg();
     gdt_reload_tss();
     idt_reload();
     lapic_init_cpu();
@@ -46,8 +46,6 @@ static void ap_entry(struct limine_mp_info *cpu_info) {
     sched_init_cpu();
 
     __atomic_fetch_add(&initialized_cpu_count, 1, __ATOMIC_SEQ_CST);
-
-    klog_info("CPU %llu initialized", cpu->id);
 
     interrupts_set(true);
     sched_yield();
@@ -116,7 +114,7 @@ void mp_init(struct limine_mp_response *mp) {
     }
 
     cpu_halt_vector = interrupts_alloc_vector();
-    interrupts_set_handler(cpu_halt_vector, halt_cpu);
+    interrupts_set_handler(cpu_halt_vector, halt_cpu, false);
 
     klog_info("MP initialized %llu %s", initialized_cpu_count,
               initialized_cpu_count > 1 ? "CPUs" : "CPU");

@@ -20,8 +20,14 @@ bool cpuid(uint32_t leaf, uint32_t subleaf, uint32_t *eax, uint32_t *ebx,
         }
     }
 
+    uint32_t unused;
+    uint32_t *a = eax ? eax : &unused;
+    uint32_t *b = ebx ? ebx : &unused;
+    uint32_t *c = ecx ? ecx : &unused;
+    uint32_t *d = edx ? edx : &unused;
+
     __asm__ volatile("cpuid"
-                     : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+                     : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d)
                      : "a"(leaf), "c"(subleaf));
     return true;
 }

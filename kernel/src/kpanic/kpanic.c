@@ -44,17 +44,15 @@ ASTER_NORETURN static inline void kvpanic(struct int_ctx_t *ctx,
     npf_vsnprintf(kpanic_buf, sizeof(kpanic_buf), reason, va);
     klog_fatal("KERNEL PANIC on CPU %llu >>> %s", get_cpu()->id, kpanic_buf);
 
-    stacktrace(0);
-
+    stacktrace(ctx);
     if (ctx != NULL) {
-        klog_fatal("Interrupt context provided");
+        klog_fatal("Interrupt context:");
         print_int_ctx(ctx);
-    } else {
-        klog_fatal("No interrupt context provided");
     }
 
-    while (1)
+    while (1) {
         halt();
+    }
 }
 
 ASTER_NORETURN

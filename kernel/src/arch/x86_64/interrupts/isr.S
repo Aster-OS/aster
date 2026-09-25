@@ -1,8 +1,13 @@
+.altmacro
+
+.macro isr_addr vector
+    .quad isr_\vector
+.endm
+
+.extern int_common
+
 .section .text
-
-.extern common_int_handler 
-
-isr_common_entry:
+isr_common:
     push %rax
     push %rbx
     push %rcx
@@ -30,7 +35,7 @@ isr_common_entry:
     push %rax
 
     mov %rsp, %rdi
-    call common_int_handler
+    call int_common
 
     pop %rax
     mov %rax, %cr4
@@ -58,24 +63,25 @@ isr_common_entry:
     pop %rbx
     pop %rax
 
-    add $16, %rsp # pop error code and interrupt vector
+    // pop error code and interrupt vector
+    add $16, %rsp
 
     iretq
 
 .macro isr_ec vector
     isr_\vector:
         push $\vector
-        jmp isr_common_entry
+        jmp isr_common
 .endm
 
 .macro isr_no_ec vector
     isr_\vector:
         push $0
         push $\vector
-        jmp isr_common_entry
+        jmp isr_common
 .endm
 
-# CPU Exceptions (0x00 - 0x1f)
+// CPU exceptions (0x00 - 0x1f)
 isr_no_ec 0
 isr_no_ec 1
 isr_no_ec 2
@@ -109,24 +115,18 @@ isr_ec 29
 isr_ec 30
 isr_no_ec 31
 
-.altmacro
-
-# 0x20 - 0xff
+// Other interrupts (0x20 - 0xff)
 .set i, 32
 .rept 224
     isr_no_ec %i
 .set i, i + 1
 .endr
 
-.macro write_isr_addr vector
-    .quad isr_\vector
-.endm
-
 .section .rodata
-.global isr_array
-isr_array:
+.global isr_table
+isr_table:
 .set i, 0
 .rept 256
-    write_isr_addr %i
+    isr_addr %i
 .set i, i + 1
 .endr

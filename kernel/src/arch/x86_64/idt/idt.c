@@ -2,11 +2,13 @@
 
 #include <stdint.h>
 
-#include "arch/x86_64/gdt/gdt_selectors.h"
+#include "arch/x86_64/gdt/gdt-sel.h"
 #include "klog/klog.h"
 #include "lib/compiler.h"
 
-static const uint8_t IDT_DESC_ATTR = 0x8e;
+static uint8_t const IDT_INTERRUPT_GATE = 0x0e;
+static uint8_t const IDT_USER = 0x60;
+static uint8_t const IDT_PRESENT = 0x80;
 
 struct idt_descriptor_t {
     uint16_t addr_0_15;
@@ -26,27 +28,27 @@ struct idtr_t {
 ASTER_ALIGNED(8) static struct idt_descriptor_t idt[IDT_MAX_DESCRIPTORS];
 static struct idtr_t idtr;
 
-extern void *isr_array[];
+extern void *isr_table[];
 
-static void idt_set_descriptor(uint8_t vector, void *isr_addr, uint8_t ist) {
+static void idt_set_descriptor(uint8_t vec, void *isr_addr) {
     uint64_t addr = (uint64_t) isr_addr;
-    struct idt_descriptor_t *idt_descriptor = &idt[vector];
+    struct idt_descriptor_t *desc = &idt[vec];
 
-    idt_descriptor->addr_0_15 = addr & 0xffff;
-    idt_descriptor->dest_cs = GDT_SELECTOR_KERNEL_CODE;
-    idt_descriptor->ist = ist;
-    idt_descriptor->attr = IDT_DESC_ATTR;
-    idt_descriptor->addr_16_31 = (addr >> 16) & 0xffff;
-    idt_descriptor->addr_32_63 = addr >> 32;
-    idt_descriptor->reserved = 0;
+    desc->addr_0_15 = addr & 0xffff;
+    desc->dest_cs = GDT_SEL_KCODE;
+    desc->ist = 0;
+    desc->attr = IDT_INTERRUPT_GATE | IDT_PRESENT;
+    desc->addr_16_31 = (addr >> 16) & 0xffff;
+    desc->addr_32_63 = addr >> 32;
+    desc->reserved = 0;
 }
 
 void idt_init(void) {
     idtr.base = (uint64_t) &idt;
     idtr.limit = sizeof(idt) - 1;
 
-    for (uint16_t vector = 0; vector < IDT_MAX_DESCRIPTORS; vector++) {
-        idt_set_descriptor(vector, isr_array[vector], 0);
+    for (uint16_t vec = 0; vec < IDT_MAX_DESCRIPTORS; vec++) {
+        idt_set_descriptor(vec, isr_table[vec]);
     }
 
     klog_info("IDT initialized");
@@ -54,4 +56,9 @@ void idt_init(void) {
 
 void idt_reload(void) {
     __asm__ volatile("lidt %0" : : "m"(idtr) : "memory");
+}
+
+void idt_set_user(uint8_t vec) {
+    struct idt_descriptor_t *desc = &idt[vec];
+    desc->attr |= IDT_USER;
 }

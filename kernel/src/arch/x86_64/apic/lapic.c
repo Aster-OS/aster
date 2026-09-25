@@ -31,7 +31,7 @@ enum lapic_regs {
     REG_TIMER_DIV = 0x3e0
 };
 
-static const uint16_t X2APIC_REG_SELF_IPI = 0x83f;
+static uint16_t const X2APIC_REG_SELF_IPI = 0x83f;
 
 enum lapic_lvt_deliv_status {
     LVT_DELIV_STATUS_SENT = 0x0,
@@ -53,7 +53,7 @@ enum lapic_deliv_mode {
     LAPIC_DELIV_MODE_EXTINT = 0x700
 };
 
-static const uint32_t LVT_MASKED ASTER_USED = 0x10000;
+static uint32_t const LVT_MASKED ASTER_USED = 0x10000;
 
 enum lapic_lvt_timer_mode {
     LVT_TIMER_ONE_SHOT = 0x0,
@@ -72,8 +72,8 @@ enum lapic_icr_shorthand {
     ICR_SHORTHAND_ALL_NO_SELF = 0xc0000
 };
 
-static const uint64_t LAPIC_CALIBRATION_NS = 100000;
-static const uint8_t LAPIC_SPURIOUS_VEC = 0xf0;
+static uint64_t const LAPIC_CALIBRATION_NS = 100000;
+static uint8_t const LAPIC_SPURIOUS_VEC = 0xf0;
 
 static uint64_t lapic_addr;
 
@@ -85,7 +85,7 @@ static inline uint32_t lapic_read(uint16_t reg) {
     if (mp_x2apic_enabled()) {
         return rdmsr(reg_to_x2apic_msr(reg));
     } else {
-        return *(volatile uint32_t *) (lapic_addr + reg + vmm_hhdm_offset());
+        return *(uint32_t volatile *) (lapic_addr + reg + vmm_hhdm());
     }
 }
 
@@ -93,7 +93,7 @@ static inline void lapic_write(uint16_t reg, uint32_t val) {
     if (mp_x2apic_enabled()) {
         wrmsr(reg_to_x2apic_msr(reg), val);
     } else {
-        *(volatile uint32_t *) (lapic_addr + reg + vmm_hhdm_offset()) = val;
+        *(uint32_t volatile *) (lapic_addr + reg + vmm_hhdm()) = val;
     }
 }
 
@@ -110,7 +110,7 @@ void lapic_init(void) {
     lapic_addr = rdmsr(MSR_IA32_APIC_BASE) & 0xffffff000;
     vmm_map_hhdm(lapic_addr);
 
-    interrupts_set_handler(LAPIC_SPURIOUS_VEC, lapic_spurious_handler);
+    interrupts_set_handler(LAPIC_SPURIOUS_VEC, lapic_spurious_handler, false);
 }
 
 void lapic_init_cpu(void) {
@@ -149,8 +149,6 @@ void lapic_init_cpu(void) {
             }
         }
     }
-
-    klog_info("CPU %llu LAPIC initialized", get_cpu()->id);
 }
 
 void lapic_ipi(uint8_t vec, uint32_t dest_lapic_id) {
@@ -206,7 +204,7 @@ void lapic_ipi_self(uint8_t vec) {
     }
 }
 
-void lapic_send_eoi(void) {
+void lapic_eoi(void) {
     lapic_write(REG_EOI, 0);
 }
 
@@ -221,9 +219,9 @@ void lapic_timer_calibrate(void) {
 
     get_cpu()->lapic_calibration_ticks = start_ticks - end_ticks;
 
-    klog_info("CPU %llu LAPIC timer calibrated: %llu ticks in %llu ns",
-              get_cpu()->id, get_cpu()->lapic_calibration_ticks,
-              LAPIC_CALIBRATION_NS);
+    klog_debug("CPU %llu LAPIC timer calibrated: %llu ticks in %llu ns",
+               get_cpu()->id, get_cpu()->lapic_calibration_ticks,
+               LAPIC_CALIBRATION_NS);
 }
 
 void lapic_timer_one_shot(uint64_t ns, uint8_t vec) {
