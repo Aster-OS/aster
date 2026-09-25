@@ -1,27 +1,36 @@
-# Limine C Template
+# Aster
 
-This repository will demonstrate how to set up a basic x86-64 kernel in C using Limine.
+Aster is a hobby x86-64 kernel written in C.
 
-It is recommended to cross reference the contents of this repository with [the Limine Bare Bones](https://osdev.wiki/wiki/Limine_Bare_Bones) OSDev wiki page.
+## Features
 
-## How to use this?
+- x86_64 only, but planning to port to RISC architectures
+- Interrupts delivered by the modern APIC
+- Page frame bitmap allocator
+- VMM paging and pagemap support
+- Kernel heap
+- Kernel panic, assertions and ELF symbol parsing for helpful stack tracing
+- ACPI
+- Hardware timers, such as the LAPIC timer, HPET or PIT
+- SMP
+- Preemptive robin robin scheduler
+- Processes and threads
+- USTAR initial ramdisk
+- ELF loader
+- Userspace
+- System calls
 
-### Dependencies
+## Building
 
-Any `make` command depends on GNU make (`gmake`) and is expected to be run using it. This usually means using `make` on most GNU/Linux distros, or `gmake` on other non-GNU systems.
+Run `make all` in the project root to create a bootable ISO image.
 
-All `make all*` targets depend on a GNU-compatible C toolchain capable of generating x86-64 ELF objects. Usually `gcc/binutils` or `clang/llvm/lld` provided by any x86-64 UNIX like (including Linux) distribution will suffice.
+Note that the following dependencies are required:
+`make`, `git`, `curl`, `xorriso`, `gcc`, `ld`.
 
-Additionally, building an ISO with `make all` requires `xorriso`, and building a HDD/USB image with `make all-hdd` requires `sgdisk` (usually from `gdisk` or `gptfdisk` packages) and `mtools`.
+## Running
 
-### Makefile targets
+A helpful Python script is provided. Run `./qemu-runner.py --smp 4` to get started.
 
-Running `make all` will compile the kernel (from the `kernel/` directory) and then generate a bootable ISO image.
+To see all the available arguments, run `./qemu-runner.py --help`.
 
-Running `make all-hdd` will compile the kernel and then generate a raw image suitable to be flashed onto a USB stick or hard drive/SSD.
-
-Running `make run` will build the kernel and a bootable ISO (equivalent to make all) and then run it using `qemu` (if installed).
-
-Running `make run-hdd` will build the kernel and a raw HDD image (equivalent to make all-hdd) and then run it using `qemu` (if installed).
-
-The `run-uefi` and `run-hdd-uefi` targets are equivalent to their non `-uefi` counterparts except that they boot `qemu` using a UEFI-compatible firmware.
+Note that `qemu-system-x86_64` is required.
